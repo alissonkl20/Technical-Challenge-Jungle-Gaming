@@ -11,7 +11,7 @@ RUN bun run build
 # Sources, tests and dev dependencies, for `docker compose run --rm tests`.
 FROM build AS test
 
-CMD ["sh", "-c", "bun run test:unit && bun run test:integration"]
+CMD ["sh", "-c", "bun run test:unit && bun run test:integration && bun run test:concurrency"]
 
 # The image the API and the workers run: compiled output only.
 FROM oven/bun:1.4.4-alpine AS runtime

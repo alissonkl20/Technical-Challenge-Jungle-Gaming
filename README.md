@@ -44,7 +44,7 @@ Testes, também em container, contra o mesmo PostgreSQL e LocalStack (cada suít
 usa um schema isolado, sem tocar nos dados da aplicação):
 
 ```sh
-docker compose run --rm tests                     # unitários + integração
+docker compose run --rm tests                     # unitários + integração + concorrência
 docker compose run --rm tests bun run test:load   # teste de carga
 ```
 
@@ -96,10 +96,11 @@ Em produção: `bun run build` e depois os scripts sem `:dev`.
 | `bun run build`                                                                                        | Compila e verifica tipos (strict)                                           |
 | `bun run lint`                                                                                         | Biome                                                                       |
 | `bun run test:unit`                                                                                    | Domínio, regras, DTOs e arquitetura (sem serviços externos)                 |
-| `bun run test:integration`                                                                             | Toda a suíte com PostgreSQL e LocalStack reais (schema e filas temporários) |
+| `bun run test:integration`                                                                             | Integração com PostgreSQL e LocalStack reais (schema e filas temporários)   |
+| `bun run test:concurrency`                                                                             | Concorrência real: paralelismo e processos independentes                    |
 | `bun run test:load`                                                                                    | Carga (100/1.000 jogadores, wallet "quente", multi-provider)                |
-| `bun run test:all`                                                                                     | Unitários + integração + carga                                              |
-| `bun run test:concurrency`, `test:idempotency`, `test:bet-results`, `test:recovery`, `test:messaging`… | Recortes temáticos da suíte de integração                                   |
+| `bun run test:all`                                                                                     | Unitários + integração + concorrência + carga                               |
+| `bun run test:spec <id>`                                                                               | Uma exigência da seção 13 isolada (`bun run test:spec list` mostra os ids)  |
 | `bun run migration:up` / `migration:down` / `migration:list`                                           | Migrations versionadas e reversíveis                                        |
 | `bun run outbox:redrive [limite]`                                                                      | Devolve eventos `FAILED` da Outbox para publicação                          |
 
@@ -201,6 +202,7 @@ As mais relevantes:
 | --------------------------------------------------- | ---------------- | ---------------------------------------------------------- |
 | `PROVIDER_API_KEYS`                                 | —                | JSON `{"codigo": "segredo ≥ 32 caracteres"}`               |
 | `PROVIDER_ADMIN_API_KEY`                            | —                | Chave das rotas administrativas (vazia = fechadas)         |
+| `POSTGRES_POOL_MAX`                                 | `10`             | Conexões do pool por processo (API ou worker)              |
 | `DATABASE_TRANSACTION_MAX_RETRIES`                  | `3`              | Retries de deadlock/serialização                           |
 | `PENDING_REFERENCE_TTL_HOURS` / `_INITIAL_DELAY_MS` | `24` / `5000`    | TTL e backoff das referências pendentes                    |
 | `OUTBOX_MAX_ATTEMPTS`                               | `6`              | Tentativas de publicação antes de `FAILED`                 |
@@ -216,22 +218,16 @@ A suíte de integração usa PostgreSQL 17 e LocalStack **reais**, com schema e
 filas temporários, sem mocks de persistência ou fila. Toda verificação
 financeira termina com `saldo da wallet == saldo reconstruído pelo Ledger`.
 
-| Exigência do enunciado (seção 13)                                                         | Onde                                                                                                            |
-| ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Money, Wallet, regras BET/WIN/LOSS/REFUND/ROLLBACK, conflito de moeda, payload divergente | `finance-domain.test.ts`, `wager-rules.test.ts`                                                                 |
-| Migrations (up/down) e constraints                                                        | `postgres-schema-migrations`, `postgres-database-invariants`, `postgres-ledger-invariants`                      |
-| Atomicidade wallet/Ledger/Inbox/Outbox; Inbox e redelivery; retry e DLQ                   | `postgres-inbox-outbox`, `postgres-sqs-command-worker`                                                          |
-| Publishers concorrentes; recuperação após reinício                                        | `postgres-inbox-outbox`, `process-*`, `postgres-http-idempotency`                                               |
-| Mesma aposta 50× em paralelo; 100 → 2×80; wallets em paralelo                             | `postgres-idempotency`, `postgres-wallet-concurrency`, carga                                                    |
-| ≥ 3 processos independentes                                                               | `postgres-multi-instance-contract` (cenários A–D), `postgres-bet-result-slot`, `postgres-recovery-compensation` |
-| Worker morto após o commit e antes do ACK                                                 | `postgres-sqs-command-worker`                                                                                   |
-| REFUND/ROLLBACK antes da referência; todas as ordens de chegada                           | `postgres-pending-references`, `postgres-out-of-order-matrix`                                                   |
-| Falha antes/depois do COMMIT e compensação                                                | `postgres-http-resilience`, `postgres-recovery-compensation`                                                    |
+Os testes estão separados em `test/unit`, `test/integration` e
+`test/concurrency`. Cada exigência da seção 13 tem um id e pode ser executada
+sozinha, por exemplo `bun run test:spec concorrencia:aposta-50x`. O mapeamento
+completo exigência → arquivo está em [`test/README.md`](./test/README.md).
 
 ### Teste de carga
 
 - **Ambiente:** máquina local com 12 CPUs e 15 GB de RAM, PostgreSQL 17 em
-  Docker, Bun 1.4, um processo de aplicação com pool de 10 conexões.
+  Docker, Bun 1.4, um processo de aplicação com pool de 10 conexões (`POSTGRES_POOL_MAX`) e
+  Outbox drenada com o lote do worker real (`OUTBOX_BATCH_SIZE`, padrão 10).
 - **Metodologia:** requisições concorrentes pelo caso de uso real contra
   PostgreSQL real. Ao final, cada cenário reconcilia saldo, Ledger, versões e
   Outbox. Linha `LOAD_REPORT` por cenário.

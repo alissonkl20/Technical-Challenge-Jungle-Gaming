@@ -62,7 +62,7 @@ SQS ──────┘    casos de uso,      └─ pending-reference-worker
 
 - `finance/domain`: `Money`, `Wallet`, `WagerTransaction`, `WalletLedgerEntry`, `FinancialOperation`, `InboxMessage`, `OutboxMessage`, política de referência. Construtores privados com `create`/`rehydrate`, sem NestJS nem ORM. `InboxMessage` (`receive` → `markProcessed`, uma única vez) e `OutboxMessage` (`enqueue` → claim → `markPublished` ou `scheduleRetry` → `PENDING`/`FAILED`, com `isDue`) decidem as próprias transições; o repositório só as persiste. O claim da Outbox continua sendo um único `UPDATE … FOR UPDATE SKIP LOCKED`, porque só o banco arbitra publishers concorrentes, e é ele que conta a tentativa (um publisher que morre no envio também consome orçamento).
 - `transactions`: o **único** caso de uso financeiro (`WagerTransactionsService`), usado por HTTP, SQS, worker de referências e compensação.
-- `http-api`: só adapta HTTP ↔ caso de uso; não importa persistência (verificado em `test/architecture.test.ts`).
+- `http-api`: só adapta HTTP ↔ caso de uso; não importa persistência (verificado em `test/unit/architecture.test.ts`).
 - Cada módulo separa `dto/` (entrada/saída HTTP e mapeadores de resposta), `types/` (interfaces por assunto) e `errors/` (erros do módulo), com `index.ts` na fronteira de cada pasta. Erros de domínio ficam em `finance/domain/errors.ts`.
 - `src/config/settings.ts` é o único ponto de leitura da configuração em runtime, com objetos tipados por área (outbox, SQS, referências pendentes, compensação). A validação continua em `env.validation*.ts`.
 - `src/shared`: `errors/` (filtro único erro → status HTTP e utilitários de cadeia de erro), `validation/`, `retry/` (backoff exponencial), `aws/` (cliente SQS e cache de URLs de fila), `http/` e `observability/`.
