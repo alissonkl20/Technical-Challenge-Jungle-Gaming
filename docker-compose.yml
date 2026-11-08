@@ -20,6 +20,9 @@ x-app-environment: &app-environment
   POSTGRES_DB: ${POSTGRES_DB:-betting_db}
   POSTGRES_USER: ${POSTGRES_USER:-betting_user}
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-betting_password}
+  # Connections per process (MikroORM pool). Sum over every API and worker
+  # replica must stay below PostgreSQL max_connections.
+  POSTGRES_POOL_MAX: ${POSTGRES_POOL_MAX:-10}
   DATABASE_TRANSACTION_MAX_RETRIES: ${DATABASE_TRANSACTION_MAX_RETRIES:-3}
   AWS_REGION: ${AWS_REGION:-sa-east-1}
   AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-test}
@@ -143,6 +146,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-betting_db}
       POSTGRES_USER: ${POSTGRES_USER:-betting_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-betting_password}
+      # Same knobs as the application, so load numbers match production.
+      POSTGRES_POOL_MAX: ${POSTGRES_POOL_MAX:-10}
+      OUTBOX_BATCH_SIZE: ${OUTBOX_BATCH_SIZE:-10}
       AWS_REGION: ${AWS_REGION:-sa-east-1}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-test}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-test}
