@@ -1,0 +1,1 @@
+export const TRANSACTION_MANAGER = Symbol("TRANSACTION_MANAGER");

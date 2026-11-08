@@ -1,0 +1,8 @@
+coverage
+dist
+.env
+.git
+.local-notes
+.localstack
+*.log
+node_modules

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+.env
+.localstack/data/
+*.log
+.DS_Store
+
+# Material de trabalho local (enunciado, rascunhos e prompts)
+.local-notes/

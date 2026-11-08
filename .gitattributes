@@ -1,0 +1,8 @@
+# Shell scripts run inside Linux containers: a CRLF checkout on Windows would
+# break them (the LocalStack init script creates the SQS queues).
+* text=auto
+*.sh text eol=lf
+*.ts text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+Dockerfile text eol=lf

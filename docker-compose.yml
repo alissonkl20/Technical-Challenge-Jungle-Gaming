@@ -1,0 +1,226 @@
+# `docker compose up --build` builds the image, waits for PostgreSQL and the
+# SQS queues, applies the migrations, and then starts the API and the three
+# workers. `docker compose run --rm tests` runs the unit and integration suites
+# against the same PostgreSQL and LocalStack.
+
+x-app-build: &app-build
+  context: .
+  dockerfile: Dockerfile
+  target: runtime
+
+# Shared by the API, the workers and the migration job. Every value can be
+# overridden from the shell or a `.env` file.
+x-app-environment: &app-environment
+  NODE_ENV: ${NODE_ENV:-development}
+  # Ports inside the containers are fixed; PORT and the *_METRICS_PORT
+  # variables only change the port published on the host.
+  PORT: 3000
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: 5432
+  POSTGRES_DB: ${POSTGRES_DB:-betting_db}
+  POSTGRES_USER: ${POSTGRES_USER:-betting_user}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-betting_password}
+  DATABASE_TRANSACTION_MAX_RETRIES: ${DATABASE_TRANSACTION_MAX_RETRIES:-3}
+  AWS_REGION: ${AWS_REGION:-sa-east-1}
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-test}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-test}
+  LOCALSTACK_ENDPOINT: http://localstack:4566
+  SQS_OUTBOX_QUEUE_NAME: ${SQS_OUTBOX_QUEUE_NAME:-test-queue}
+  SQS_EVENT_QUEUE_NAME: ${SQS_EVENT_QUEUE_NAME:-test-queue}
+  SQS_EVENT_DLQ_NAME: ${SQS_EVENT_DLQ_NAME:-financial-events-dlq}
+  SQS_WAGER_COMMAND_QUEUE_NAME: ${SQS_WAGER_COMMAND_QUEUE_NAME:-wager-transactions.fifo}
+  SQS_WAGER_COMMAND_DLQ_NAME: ${SQS_WAGER_COMMAND_DLQ_NAME:-wager-transactions-dlq.fifo}
+  SQS_EVENT_BATCH_SIZE: ${SQS_EVENT_BATCH_SIZE:-10}
+  SQS_EVENT_WAIT_TIME_SECONDS: ${SQS_EVENT_WAIT_TIME_SECONDS:-20}
+  SQS_EVENT_VISIBILITY_TIMEOUT_SECONDS: ${SQS_EVENT_VISIBILITY_TIMEOUT_SECONDS:-30}
+  SQS_EVENT_RETRY_VISIBILITY_SECONDS: ${SQS_EVENT_RETRY_VISIBILITY_SECONDS:-5}
+  SQS_EVENT_MAX_RECEIVE_COUNT: ${SQS_EVENT_MAX_RECEIVE_COUNT:-5}
+  SQS_EVENT_POLL_INTERVAL_MS: ${SQS_EVENT_POLL_INTERVAL_MS:-1000}
+  OUTBOX_RETRY_BASE_DELAY_MS: ${OUTBOX_RETRY_BASE_DELAY_MS:-1000}
+  OUTBOX_RETRY_MAX_DELAY_MS: ${OUTBOX_RETRY_MAX_DELAY_MS:-60000}
+  OUTBOX_POLL_INTERVAL_MS: ${OUTBOX_POLL_INTERVAL_MS:-1000}
+  OUTBOX_BATCH_SIZE: ${OUTBOX_BATCH_SIZE:-10}
+  OUTBOX_LEASE_MS: ${OUTBOX_LEASE_MS:-30000}
+  OUTBOX_MAX_ATTEMPTS: ${OUTBOX_MAX_ATTEMPTS:-6}
+  OUTBOX_METRICS_PORT: 9464
+  SQS_EVENT_METRICS_PORT: 9465
+  PENDING_REFERENCE_METRICS_PORT: 9466
+  PENDING_REFERENCE_TTL_HOURS: ${PENDING_REFERENCE_TTL_HOURS:-24}
+  PENDING_REFERENCE_INITIAL_DELAY_MS: ${PENDING_REFERENCE_INITIAL_DELAY_MS:-5000}
+  PENDING_REFERENCE_POLL_INTERVAL_MS: ${PENDING_REFERENCE_POLL_INTERVAL_MS:-1000}
+  PENDING_REFERENCE_BATCH_SIZE: ${PENDING_REFERENCE_BATCH_SIZE:-50}
+  COMPENSATION_ENABLED: ${COMPENSATION_ENABLED:-false}
+  # Demonstration credentials for local evaluation only: provider `provider-a`
+  # and the administrative key. Replace both outside a local environment.
+  PROVIDER_API_KEYS: '{"provider-a":"provider-a-local-key-0123456789abcdef"}'
+  PROVIDER_ADMIN_API_KEY: ${PROVIDER_ADMIN_API_KEY:-local-admin-key-0123456789abcdef0123}
+
+x-app-dependencies: &app-dependencies
+  postgres:
+    condition: service_healthy
+  localstack:
+    condition: service_healthy
+  migrate:
+    condition: service_completed_successfully
+
+services:
+  migrate:
+    build: *app-build
+    command: ["bun", "dist/src/workers/migrate.js"]
+    environment: *app-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - dev-network
+
+  app:
+    build: *app-build
+    environment: *app-environment
+    ports:
+      - "127.0.0.1:${PORT:-3000}:3000"
+    depends_on: *app-dependencies
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:3000/health/ready >/dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - dev-network
+
+  outbox-publisher:
+    build: *app-build
+    command: ["bun", "dist/src/workers/outbox-worker.js"]
+    environment: *app-environment
+    ports:
+      - "127.0.0.1:${OUTBOX_METRICS_PORT:-9464}:9464"
+    depends_on: *app-dependencies
+    restart: unless-stopped
+    networks:
+      - dev-network
+
+  sqs-event-consumer:
+    build: *app-build
+    command: ["bun", "dist/src/workers/sqs-event-worker.js"]
+    environment: *app-environment
+    ports:
+      - "127.0.0.1:${SQS_EVENT_METRICS_PORT:-9465}:9465"
+    depends_on: *app-dependencies
+    restart: unless-stopped
+    networks:
+      - dev-network
+
+  pending-reference-worker:
+    build: *app-build
+    command: ["bun", "dist/src/workers/pending-reference-worker.js"]
+    environment: *app-environment
+    ports:
+      - "127.0.0.1:${PENDING_REFERENCE_METRICS_PORT:-9466}:9466"
+    depends_on: *app-dependencies
+    restart: unless-stopped
+    networks:
+      - dev-network
+
+  # Not started by `docker compose up`: run it with `docker compose run --rm tests`.
+  # Each suite migrates its own isolated schema, so it never touches the data
+  # of the running application.
+  tests:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-betting_db}
+      POSTGRES_USER: ${POSTGRES_USER:-betting_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-betting_password}
+      AWS_REGION: ${AWS_REGION:-sa-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-test}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-test}
+      LOCALSTACK_ENDPOINT: http://localhost:4566
+      LOCALSTACK_TEST_ENDPOINT: http://localhost:4566
+    # Shares LocalStack's network namespace, so `localhost:4566` (the default
+    # several suites build their configuration with) reaches LocalStack, while
+    # `postgres` still resolves on the compose network.
+    network_mode: "service:localstack"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17.11-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-betting_db}
+      POSTGRES_USER: ${POSTGRES_USER:-betting_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-betting_password}
+      TZ: UTC
+      PGTZ: UTC
+    command: ["postgres", "-c", "timezone=UTC"]
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - dev-network
+
+  localstack:
+    image: localstack/localstack:3.8.1
+    environment:
+      SERVICES: sqs
+      DEFAULT_REGION: ${AWS_REGION:-sa-east-1}
+      AWS_DEFAULT_REGION: ${AWS_REGION:-sa-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-test}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-test}
+      SQS_OUTBOX_QUEUE_NAME: ${SQS_OUTBOX_QUEUE_NAME:-test-queue}
+      SQS_EVENT_QUEUE_NAME: ${SQS_EVENT_QUEUE_NAME:-test-queue}
+      SQS_EVENT_DLQ_NAME: ${SQS_EVENT_DLQ_NAME:-financial-events-dlq}
+      SQS_WAGER_COMMAND_QUEUE_NAME: ${SQS_WAGER_COMMAND_QUEUE_NAME:-wager-transactions.fifo}
+      SQS_WAGER_COMMAND_DLQ_NAME: ${SQS_WAGER_COMMAND_DLQ_NAME:-wager-transactions-dlq.fifo}
+      PERSISTENCE: "1"
+    ports:
+      - "127.0.0.1:${LOCALSTACK_PORT:-4566}:4566"
+    volumes:
+      - localstack-data:/var/lib/localstack
+      - ./docker/localstack/init:/etc/localstack/init/ready.d:ro
+    # Healthy only once the init script has created the queues, so nothing
+    # that depends on LocalStack starts before its queues exist.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'curl -fsS http://localhost:4566/_localstack/init/ready | grep -Eq ''"completed": ?true''',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    networks:
+      - dev-network
+
+volumes:
+  postgres-data:
+    name: technical-challenge-jungle-betting-postgres
+  localstack-data:
+    name: technical-challenge-jungle-betting-localstack
+
+networks:
+  dev-network:
+    driver: bridge
