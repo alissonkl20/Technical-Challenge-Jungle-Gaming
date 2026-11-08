@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Jungle Wallet sob Carga</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: relatório de capacidade — hipóteses e perfis no topo, tabela dos cenários, detalhe do cenário escolhido (veredito, números, gráfico, provedores, peso de cada ajuste, o que fazer), provedores, referências de mercado e o modelo */
+:root{
+  --bg:#eef2ef; --panel:#ffffff; --ink:#13211c; --muted:#5b6b64; --line:#cbd6d0;
+  --accent:#0d7a5f; --accent-soft:#d5ece4;
+  --ok:#1f8a4c; --ok-soft:#dcefe2; --warn:#b7791f; --warn-soft:#f7ead3; --crit:#c2412d; --crit-soft:#f6dcd6;
+  --c-in:#2f6fb5; --c-proc:#00875a;
+  --f-display:"Familjen Grotesk","Segoe UI",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1714; --panel:#16211d; --ink:#e3ece8; --muted:#93a59d; --line:#2a3a34;
+  --accent:#3fc29a; --accent-soft:#183a30;
+  --ok:#4cc27e; --ok-soft:#173523; --warn:#e3a94b; --warn-soft:#3a2f1a; --crit:#ef6f5a; --crit-soft:#3d1f1a;
+  --c-in:#5596de; --c-proc:#22ad84; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0f1714; --panel:#16211d; --ink:#e3ece8; --muted:#93a59d; --line:#2a3a34;
+  --accent:#3fc29a; --accent-soft:#183a30;
+  --ok:#4cc27e; --ok-soft:#173523; --warn:#e3a94b; --warn-soft:#3a2f1a; --crit:#ef6f5a; --crit-soft:#3d1f1a;
+  --c-in:#5596de; --c-proc:#22ad84; color-scheme:dark;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1260px;margin:0 auto;padding-block:30px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:26px}
+header{display:grid;gap:8px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-size:clamp(30px,4.4vw,44px);line-height:1.08;margin:0;text-wrap:balance}
+h2{font-family:var(--f-display);font-size:23px;margin:0;text-wrap:balance}
+h3{font:600 15px var(--f-body);margin:0}
+p{margin:0}
+.lede{color:var(--muted);max-width:80ch}
+.note{color:var(--muted);font-size:14px;max-width:88ch}
+a{color:var(--accent)}
+section{display:grid;gap:12px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+/* Hipóteses e perfis */
+.setup{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px}
+@media (max-width:980px){.setup{grid-template-columns:minmax(0,1fr)}}
+.hyp{padding:14px 16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 22px;align-content:start}
+@media (max-width:560px){.hyp{grid-template-columns:minmax(0,1fr)}}
+.hyp h3{grid-column:1/-1}
+.hyp .sub{grid-column:1/-1;font-size:13px;color:var(--muted);margin-top:-8px}
+.ctl{display:grid;gap:4px;min-width:0}
+.ctl label{font-size:13px;color:var(--muted)}
+.ctl .row{display:flex;gap:10px;align-items:center}
+.ctl input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
+.ctl output{font:600 13px var(--f-mono);font-variant-numeric:tabular-nums;min-width:7ch;text-align:right}
+.ctl select{font:500 14px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:6px 8px}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink)!important}
+.chk input{accent-color:var(--accent);width:16px;height:16px;flex:none}
+.hint{font-size:12.5px;color:var(--muted)}
+input:focus-visible,button:focus-visible,select:focus-visible,tr:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* Tabelas */
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:940px;font-size:14px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font:600 10.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:13px;white-space:nowrap;text-align:right}
+th.num{text-align:right}
+tr:last-child td{border-bottom:0}
+#cmpBody tr{cursor:pointer}
+#cmpBody tr:hover td{background:color-mix(in srgb,var(--accent-soft) 45%,transparent)}
+#cmpBody tr[aria-selected="true"] td{background:var(--accent-soft)}
+#cmpBody tr[aria-selected="true"] td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.sc-name b{display:block;font-weight:600}
+.sc-name span{font-size:12.5px;color:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:5px;font:600 11px var(--f-mono);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.crit{background:var(--crit-soft);color:var(--crit)}
+.pill.na{background:var(--bg);color:var(--muted)} .pill.na::before{display:none}
+.cell-v{display:grid;gap:2px;justify-items:start}
+.cell-v small{font:12px var(--f-mono);color:var(--muted)}
+/* Detalhe */
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab,.seg button{font:500 13px var(--f-body);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:6px 11px;cursor:pointer}
+.tab:hover,.seg button:hover{border-color:var(--accent)}
+.tab[aria-selected="true"],.seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.seg{display:inline-flex;gap:4px}
+.detail{padding:16px 18px;display:grid;gap:16px;min-width:0}
+.d-head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between}
+.d-head h2{font-size:22px}
+.d-head .right{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.story{color:var(--muted);max-width:92ch;font-size:14.5px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+@media (max-width:860px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--panel);padding:11px 13px;display:grid;gap:2px;min-width:0}
+.kpi span{font-size:12px;color:var(--muted)}
+.kpi b{font:600 19px var(--f-mono);font-variant-numeric:tabular-nums}
+.kpi b.ok{color:var(--ok)} .kpi b.warn{color:var(--warn)} .kpi b.crit{color:var(--crit)}
+.kpi small{font-size:12px;color:var(--muted)}
+.keys{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted)}
+.keys span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:3px;border-radius:2px;display:inline-block}
+.sw.dash{background:repeating-linear-gradient(90deg,var(--muted) 0 4px,transparent 4px 7px)}
+.sw.dashin{background:repeating-linear-gradient(90deg,var(--c-in) 0 5px,transparent 5px 8px)}
+.plot{position:relative;overflow-x:auto}
+.plot svg{display:block;width:100%;min-width:680px;height:auto;touch-action:pan-y}
+.grid{stroke:var(--line);stroke-width:1}
+.axis{fill:var(--muted);font:10.5px var(--f-mono)}
+.strip-t{fill:var(--muted);font:600 10.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase}
+.ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.ln.in{stroke:var(--c-in)} .ln.proc{stroke:var(--c-proc)} .ln.dash{stroke-dasharray:6 4}
+.thr{stroke:var(--muted);stroke-width:1;stroke-dasharray:4 3}
+.ev{stroke:var(--muted);stroke-width:1;stroke-dasharray:2 3;opacity:.7}
+.evl{fill:var(--ink);font:500 10.5px var(--f-body)}
+.endlbl{fill:var(--ink);font:600 11px var(--f-mono)}
+.xh{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 4px 14px color-mix(in srgb,var(--ink) 14%,transparent);min-width:210px;display:grid;gap:2px}
+.tip div{display:flex;justify-content:space-between;gap:12px}
+.tip b{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.tip .tt{font:600 11px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.split{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px}
+@media (max-width:1050px){.split{grid-template-columns:minmax(0,1fr)}}
+.sub-t{display:grid;gap:8px;min-width:0}
+.sub-t .tbl{border:1px solid var(--line);border-radius:9px}
+.sub-t table{min-width:640px}
+.todo{display:grid;gap:8px;list-style:none;margin:0;padding:0}
+.todo li{display:grid;grid-template-columns:14px minmax(0,1fr);gap:10px;font-size:14.5px;align-items:start}
+.todo li::before{content:"";width:9px;height:9px;border-radius:2px;margin-top:6px;background:var(--accent)}
+.todo li.warn::before{background:var(--warn)} .todo li.crit::before{background:var(--crit)}
+.delta{font:600 12px var(--f-mono)}
+.delta.up{color:var(--crit)} .delta.same{color:var(--muted)}
+.refs td:last-child{font-size:13px}
+.formula{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.formula{grid-template-columns:minmax(0,1fr)}}
+.fcard{padding:14px 16px;display:grid;gap:6px;align-content:start;min-width:0}
+.fcard p{font-size:14px;color:var(--muted)}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--bg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere;color:var(--ink)}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Serviço financeiro de apostas · análise de capacidade</div>
+    <h1>Jungle Wallet sob Carga</h1>
+    <p class="lede">Oito situações reais de uma casa de apostas, com sete provedores de jogos, rodadas contra a arquitetura proposta: boxes, fila com prioridade, instâncias de escrita, 4 shards PostgreSQL e leitura em Redis (saldo) e DynamoDB (extrato). Cada cenário roda em dois perfis de escala, o atual e um reforçado que você configura, e a página mostra quanto cada ajuste pesou no resultado. O modelo usa tempos reais de autoscaling.</p>
+  </header>
+
+  <section>
+    <h2>Hipóteses e perfis de escala</h2>
+    <div class="setup">
+      <div class="panel hyp" role="group" aria-label="Hipóteses de público e banco">
+        <h3>Público e banco</h3>
+        <div class="ctl"><label for="hP">Jogadores simultâneos no pico</label><div class="row"><input id="hP" type="range" min="10000" max="200000" step="5000" value="100000"><output id="oP" for="hP"></output></div></div>
+        <div class="ctl"><label for="hSpin">Segundos entre giros no cassino</label><div class="row"><input id="hSpin" type="range" min="3" max="10" step="0.5" value="5"><output id="oSpin" for="hSpin"></output></div></div>
+        <div class="ctl"><label for="hSbm">Apostas esportivas por minuto, por jogador ao vivo</label><div class="row"><input id="hSbm" type="range" min="0.05" max="0.5" step="0.05" value="0.15"><output id="oSbm" for="hSbm"></output></div></div>
+        <div class="ctl"><label for="hG">Ganho na escrita do banco (índices + chave com prefixo)</label><div class="row"><input id="hG" type="range" min="0" max="0.9" step="0.1" value="0.8"><output id="oG" for="hG"></output></div></div>
+        <div class="ctl"><label class="chk" for="hCache"><input id="hCache" type="checkbox" checked>Cache Redis de Idempotency-Key</label><span class="hint">A box responde repetições direto, sem enfileirar</span></div>
+        <div class="ctl"><label class="chk" for="hPre"><input id="hPre" type="checkbox" checked>Pré-escalar antes de eventos conhecidos</label><span class="hint">Sobe o necessário para o pico previsto, 15 min antes</span></div>
+      </div>
+      <div class="panel hyp" role="group" aria-label="Perfil reforçado">
+        <h3>Perfil reforçado</h3>
+        <p class="sub">O perfil atual fica fixo para comparação: até 4 boxes, até 8 instâncias de escrita, autoscaler reativo, fila única e instância nova leva 60 s.</p>
+        <div class="ctl"><label for="pB">Máximo de boxes</label><div class="row"><input id="pB" type="range" min="4" max="16" step="1" value="8"><output id="oB" for="pB"></output></div></div>
+        <div class="ctl"><label for="pW">Máximo de instâncias de escrita</label><div class="row"><input id="pW" type="range" min="8" max="32" step="1" value="16"><output id="oW" for="pW"></output></div></div>
+        <div class="ctl"><label for="pPol">Como o autoscaler decide</label>
+          <select id="pPol"><option value="fila" selected>Pela fila (KEDA): vazão + acumulado</option><option value="reativo">Reativo: só vazão, sobe aos poucos</option></select></div>
+        <div class="ctl"><label class="chk" for="pFair"><input id="pFair" type="checkbox" checked>Fila justa por provedor</label><span class="hint">Cada provedor tem sua fila; drenagem dividida pela cota</span></div>
+        <div class="ctl"><label class="chk" for="pWarm"><input id="pWarm" type="checkbox" checked>Instâncias aquecidas</label><span class="hint">Pool pronto: entra em 15 s em vez de 45 a 60 s</span></div>
+      </div>
+    </div>
+    <p class="note">100 mil jogadores simultâneos é a hipótese de um operador grande em dia de pico; use o controle para testar outros tamanhos. Para comparar: o Brasil teve 17,7 milhões de apostadores em bets autorizadas no 1º semestre de 2025, divididos entre 78 empresas.</p>
+  </section>
+
+  <section>
+    <h2>Os oito cenários lado a lado</h2>
+    <div class="panel tbl">
+      <table>
+        <thead><tr><th>Cenário</th><th class="num">Pico req/s</th><th class="num">Pico escritas/s</th><th>Perfil atual</th><th>Perfil reforçado</th><th class="num">Escrita máx.</th><th class="num">Boxes máx.</th><th>Mais afetado (reforçado)</th></tr></thead>
+        <tbody id="cmpBody"></tbody>
+      </table>
+    </div>
+    <p class="note">Abaixo de cada veredito: a maior espera de uma aposta BET. "Escrita máx." e "Boxes máx." mostram atual → reforçado. Clique numa linha para ver o cenário em detalhe. WIN e ROLLBACK nunca são recusados.</p>
+  </section>
+
+  <section>
+    <div class="tabs" role="tablist" aria-label="Cenário" id="tabs"></div>
+    <div class="panel detail" id="detail" role="tabpanel">
+      <div class="d-head"><h2 id="dName">–</h2>
+        <div class="right"><div class="seg" role="group" aria-label="Perfil exibido"><button id="vNow" aria-pressed="false">Perfil atual</button><button id="vPlus" aria-pressed="true">Perfil reforçado</button></div><span id="dVerdict"></span></div></div>
+      <p class="story" id="dStory"></p>
+      <div class="kpis" id="dKpis"></div>
+      <div class="keys">
+        <span><i class="sw" style="background:var(--c-in)"></i>chegando · espera BET média · boxes</span>
+        <span><i class="sw dashin"></i>espera BET do provedor mais afetado</span>
+        <span><i class="sw" style="background:var(--c-proc)"></i>processado · espera ROLLBACK/WIN · instâncias de escrita</span>
+        <span><i class="sw dash"></i>limite de 4 s</span>
+      </div>
+      <div class="plot" id="plot">
+        <svg id="chart" viewBox="0 0 1000 330" role="img" aria-label="Gráfico do cenário em 120 minutos"></svg>
+        <div class="tip" id="tip" hidden></div>
+      </div>
+      <div class="split">
+        <div class="sub-t"><h3>Por provedor</h3><div class="tbl"><table>
+          <thead><tr><th>Provedor</th><th class="num">Pico req/s</th><th class="num">Uso máx. da cota</th><th class="num">Espera máx. BET</th><th class="num">Recusadas</th><th class="num">Expiradas</th><th class="num">Pelo cache</th></tr></thead>
+          <tbody id="provBody"></tbody></table></div></div>
+        <div class="sub-t"><h3>Peso de cada ajuste do perfil reforçado</h3><div class="tbl"><table style="min-width:420px">
+          <thead><tr><th>Sem este ajuste</th><th>Resultado</th><th class="num">Perdidas*</th></tr></thead>
+          <tbody id="ablBody"></tbody></table></div>
+          <p class="hint">* BET recusadas por capacidade mais expiradas. Cada linha roda o perfil reforçado inteiro, desligando só aquele ajuste.</p></div>
+      </div>
+      <div style="display:grid;gap:8px"><h3>O que fazer neste cenário</h3><ul class="todo" id="dTodo"></ul></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Os sete provedores</h2>
+    <div class="panel tbl"><table style="min-width:640px">
+      <thead><tr><th>Provedor</th><th>Tipo de jogo</th><th class="num">Parte do tráfego do tipo</th><th class="num">Cota (BET + leitura)</th></tr></thead>
+      <tbody id="pvBody"></tbody></table></div>
+    <p class="note">Nomes genéricos, sem relação com empresas reais. A divisão segue o padrão comum de mercado: poucos provedores de slots concentram a maior parte dos giros. WIN e ROLLBACK ficam fora da cota.</p>
+  </section>
+
+  <section>
+    <h2>Referências de mercado</h2>
+    <p class="note" id="refLine"></p>
+    <div class="panel tbl refs">
+      <table>
+        <thead><tr><th>Evento</th><th>Pico publicado</th><th class="num">Por segundo</th><th>Fonte</th></tr></thead>
+        <tbody>
+          <tr><td>Super Bowl LIX (2025), FanDuel</td><td>cerca de 70 mil apostas por minuto; 16,6 milhões de apostas no total</td><td class="num">≈ 1.170</td><td><a href="https://casinobeats.com/2025/02/12/super-bowl-lix-smashes-betting-records-but-did-sportsbooks-profit/" target="_blank" rel="noopener">CasinoBeats</a></td></tr>
+          <tr><td>Super Bowl LIX (2025), DraftKings</td><td>59 mil apostas por minuto, logo antes do início; 12 milhões de apostas</td><td class="num">≈ 980</td><td><a href="https://casinobeats.com/2025/02/12/super-bowl-lix-smashes-betting-records-but-did-sportsbooks-profit/" target="_blank" rel="noopener">CasinoBeats</a></td></tr>
+          <tr><td>Grand National (2024), OpenBet, todos os clientes somados</td><td>101 mil apostas por minuto; 3 mil apostas por segundo no pico; 397 milhões de transações de conta no festival</td><td class="num">3.000</td><td><a href="https://www.openbet.com/news/openbet-powers-record-breaking-100-000-peak-bets-per-minute-at-grand-national-2024" target="_blank" rel="noopener">OpenBet</a></td></tr>
+          <tr><td>Super Bowl LVIII (2024), GeoComply</td><td>14.750 verificações de localização por segundo antes do início</td><td class="num">14.750</td><td><a href="https://fortune.com/2024/02/12/super-bowl-sports-gambling-online-betting/" target="_blank" rel="noopener">Fortune</a></td></tr>
+          <tr><td>bet365, pico de tráfego (dado de fornecedor)</td><td>até 2 milhões de usuários simultâneos e centenas de milhares de transações por segundo, incluindo dados de odds</td><td class="num">–</td><td><a href="https://hop.extrahop.com/customers/stories/bet365" target="_blank" rel="noopener">ExtraHop</a></td></tr>
+          <tr><td>Mercado brasileiro (2025)</td><td>17,7 milhões de apostadores no 1º semestre; 25,2 milhões no ano; R$ 37 bilhões de receita bruta no primeiro ano regulado</td><td class="num">–</td><td><a href="https://www.infomoney.com.br/?p=2999769" target="_blank" rel="noopener">InfoMoney</a>, <a href="https://sigma.world/pt-br/news/25-milhoes-de-brasileiros-apostam-ativamente-no-brasil/" target="_blank" rel="noopener">Sigma</a>, <a href="https://www.meioemensagem.com.br/marketing/regulacao-das-bets-25-mil-sites-bloqueados-e-receita-de-r-37-bi" target="_blank" rel="noopener">Meio &amp; Mensagem</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">O maior pico publicado de apostas esportivas fica entre mil e 3 mil apostas por segundo, mesmo nos maiores eventos do mundo. O que pesa numa carteira é o cassino: cada giro gera um BET, um WIN e, muitas vezes, uma consulta de saldo. Os números de fornecedores são declarações de marketing e servem como ordem de grandeza.</p>
+  </section>
+
+  <section>
+    <h2>Como o modelo calcula</h2>
+    <div class="formula">
+      <div class="panel fcard"><h3>De jogadores para requisições</h3><p>Cassino: <code>giros/s = jogadores ÷ segundos entre giros</code>, divididos entre os provedores de cassino. Cada giro gera 1 BET, 1 WIN e 0,5 consulta de saldo. Esporte: <code>apostas/s = jogadores × apostas por minuto ÷ 60</code>, mais 1 consulta a cada 20 s. No apito final, 45% das apostas viram WIN em 3 minutos. ROLLBACK: 0,3% dos giros e 1% das apostas esportivas.</p></div>
+      <div class="panel fcard"><h3>Capacidade e filas</h3><p>Box: 10 mil escritas/s. Instância de escrita: <code>3 mil ÷ (0,6 + 0,4 × (1 − g))</code>. Shard: <code>8 mil ÷ (1 − g)</code>, 4 shards. A fila puxa ROLLBACK, depois WIN, depois BET. Fila única: BET de todos os provedores na ordem de chegada. Fila justa: cada provedor tem sua fila e a vazão de BET é dividida pela cota de quem tem acúmulo. BET recebe 429 quando a espera do seu provedor passa de 4 s e expira em 10 s.</p></div>
+      <div class="panel fcard"><h3>Autoscaling</h3><p>Métricas lidas a cada 15 s. Reativo: olha só a vazão e sobe no máximo 2 instâncias de escrita e 1 box por ciclo. Pela fila: soma a vazão e o acumulado (para drenar em 30 s) e sobe o necessário de uma vez. Instância nova entra em 60 s, box em 45 s, ou 15 s com pool aquecido. Só desliga depois de 5 min sobrando. É um modelo de fila contínua com passo de 2 s, não um teste de carga.</p></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const NS='http://www.w3.org/2000/svg';
+const fmt=n=>Math.round(n).toLocaleString('pt-BR');
+const fmtK=n=>n>=1000?(n/1000).toFixed(n>=10000?0:1).replace('.',',')+' mil':String(Math.round(n));
+const sec=n=>n>=60?'> 60 s':n.toFixed(1).replace('.',',')+' s';
+const pct=n=>(n*100).toFixed(n>.995&&n<1?1:0).replace('.',',')+'%';
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lin=(m,a,b,v0,v1)=>m<=a?v0:m>=b?v1:v0+(v1-v0)*(m-a)/(b-a);
+const inAny=(m,list,dur)=>list.some(g=>m>=g&&m<g+dur);
+
+// ---------- Provedores ----------
+const PV=[
+  {id:'A',type:'Slots',cs:.32,ss:0,q:16000},
+  {id:'B',type:'Slots',cs:.22,ss:0,q:11000},
+  {id:'C',type:'Cassino ao vivo',cs:.16,ss:0,q:8000},
+  {id:'D',type:'Crash e instantâneos',cs:.14,ss:0,q:20000,note:'contrato antigo, cota folgada'},
+  {id:'E',type:'Slots regionais',cs:.16,ss:0,q:8000},
+  {id:'F',type:'Apostas esportivas',cs:0,ss:.7,q:8000},
+  {id:'G',type:'Esporte virtual e e-sports',cs:0,ss:.3,q:4000},
+];
+const NP=PV.length;
+
+// ---------- Cenários ----------
+const copaBet=m=>(m>=10&&m<15)?3:(m>=60&&m<75)?.5:inAny(m,[38,80,101],2)?5:1;
+const SC=[
+  {id:'madrugada',name:'Madrugada de terça',when:'03:00, dia útil',seed:1,
+   story:'Pouca gente jogando, quase só cassino. É o piso do sistema: tudo deve rodar no mínimo de instâncias, com resposta na hora.',
+   profile:m=>({casino:.05,sports:.01}),events:[],pre:null},
+  {id:'noite',name:'Noite de semana',when:'20:00 às 22:00',seed:2,
+   story:'O horário nobre do cassino. Jogadores entram aos poucos ao longo de duas horas. É a carga contínua mais alta de um dia comum.',
+   profile:m=>({casino:lin(m,0,120,.40,.55),sports:.05}),events:[],pre:null},
+  {id:'brasileirao',name:'Rodada do Brasileirão',when:'domingo, 16:00',seed:3,
+   story:'Dez jogos ao mesmo tempo. A aposta ao vivo cresce até o início, dispara em cada gol e cai no intervalo. No apito final, as apostas são liquidadas e chega uma onda de WIN dos provedores de esporte.',
+   profile:m=>({casino:.40,sports:m<5?.08:m<110?lin(m,5,15,.08,.35):lin(m,110,118,.35,.10),
+     betMult:(m>=10&&m<15)?2.5:(m>=60&&m<75)?.6:inAny(m,[40,85,98],1.5)?4:1}),
+   settle:[{at:110,dur:3}],
+   events:[{m:15,l:'início'},{m:40,l:'gol'},{m:60,l:'intervalo'},{m:85,l:'gol'},{m:98,l:'gol'},{m:110,l:'fim · liquidação'}],
+   pre:{from:0,to:116}},
+  {id:'copa',name:'Jogo do Brasil na Copa',when:'quarta, 16:00',seed:4,
+   story:'O maior evento esportivo do ano. Muita gente entra só para esse jogo. O pico de apostas acontece nos minutos antes do início, como no Super Bowl, e de novo em cada gol.',
+   profile:m=>({casino:.25,sports:m<15?lin(m,0,15,.20,.75):m<110?.75:lin(m,110,118,.75,.20),betMult:copaBet(m)}),
+   settle:[{at:110,dur:3}],
+   events:[{m:15,l:'início'},{m:38,l:'gol'},{m:60,l:'intervalo'},{m:80,l:'gol'},{m:101,l:'gol'},{m:110,l:'fim · liquidação'}],
+   pre:{from:0,to:116}},
+  {id:'giros',name:'Campanha de giros grátis',when:'sexta, 20:00',seed:5,
+   story:'O marketing manda uma notificação de giros grátis para toda a base às 20:30. Em 3 minutos quase todo mundo entra, e quem tem giro grátis gira mais rápido. Todos os provedores de cassino sobem juntos.',
+   profile:m=>({casino:m<30?.40:m<33?lin(m,30,33,.40,.95):m<55?.95:lin(m,55,70,.95,.50),sports:.05,spinMult:(m>=30&&m<55)?1.6:1}),
+   events:[{m:30,l:'notificação enviada'},{m:55,l:'fim da campanha'}],
+   pre:{from:15,to:60}},
+  {id:'extremo',name:'Final da Copa + campanha no intervalo',when:'domingo, 16:00',seed:8,
+   story:'O pior caso planejado: a final da Copa com o Brasil, e o marketing dispara giros grátis no intervalo para segurar o público. Esporte e cassino no pico ao mesmo tempo.',
+   profile:m=>({casino:m<60?.25:m<62?lin(m,60,62,.25,.85):m<75?.85:lin(m,75,85,.85,.30),
+     sports:m<15?lin(m,0,15,.20,.75):m<110?.75:lin(m,110,118,.75,.20),betMult:copaBet(m),spinMult:(m>=60&&m<75)?1.6:1}),
+   settle:[{at:110,dur:3}],
+   events:[{m:15,l:'início'},{m:38,l:'gol'},{m:60,l:'intervalo + giros grátis'},{m:80,l:'gol'},{m:101,l:'gol'},{m:110,l:'fim · liquidação'}],
+   pre:{from:0,to:116}},
+  {id:'lancamento',name:'Provedor D lança jogo sem avisar',when:'noite de semana',seed:7,
+   story:'O provedor D lança um crash game com campanha própria e não avisa a operação. Os jogadores dele sextuplicam em 3 minutos; os outros provedores seguem normais. É tráfego legítimo, e a cota do D é folgada (contrato antigo), então ela não segura o pico: quem decide se os outros provedores sofrem é a fila.',
+   profile:m=>({casino:.5,sports:.05,legit:{D:m<30?1:m<33?lin(m,30,33,1,6):m<80?6:lin(m,80,100,6,3)}}),
+   events:[{m:30,l:'lançamento do jogo'},{m:80,l:'campanha esfria'}],pre:null},
+  {id:'storm',name:'Provedor B em loop de retry',when:'noite de semana, incidente',seed:6,
+   story:'Um bug no provedor B faz ele reenviar cada chamada várias vezes, com a mesma Idempotency-Key. O tráfego dele quadruplica por 12 minutos. Ninguém avisa antes.',
+   profile:m=>({casino:.5,sports:.05,dup:{B:(m>=40&&m<52)?4:1}}),
+   events:[{m:40,l:'provedor B em loop'},{m:52,l:'provedor corrige'}],pre:null},
+];
+
+// ---------- Modelo ----------
+const STEP=2,MINS=120,N=MINS*60/STEP;
+const CAP={box:10000,w:3000,r:5000,shards:32000,provW:60,provB:45,provR:60,hpa:15,down:300,admit:4,ttl:10,sync:.3};
+function noise(i,k){return 1+.04*Math.sin(i*.37+k)*Math.sin(i*.051+k*2);}
+function load(h,p,i,seed,sWin){
+  const nz=i<0?1:noise(i,seed),casinoP=h.P*p.casino*nz,sportsP=h.P*p.sports*nz;
+  const spins=casinoP/(h.spin/(p.spinMult||1)),sBets=sportsP*h.sbm*(p.betMult||1)/60;
+  return PV.map(pv=>{
+    const lm=(p.legit&&p.legit[pv.id])||1,dm=(p.dup&&p.dup[pv.id])||1;
+    const sp=spins*pv.cs*lm,sb=sBets*pv.ss*lm;
+    return {bet:sp+sb,win:sp+sWin*pv.ss,rb:sp*.003+sb*.01,reads:sp*.5+sportsP*pv.ss*.05*lm,dm,sb};
+  });
+}
+function fairShares(cap,demand){
+  const out=new Array(NP).fill(0);let left=cap,act=demand.map((d,k)=>k).filter(k=>demand[k]>1e-9);
+  for(let it=0;it<NP&&left>1e-9&&act.length;it++){
+    const W=act.reduce((a,k)=>a+PV[k].q,0);let used=0;const next=[];
+    act.forEach(k=>{const give=left*PV[k].q/W,need=demand[k]-out[k];if(need<=give){out[k]+=need;used+=need;}else{out[k]+=give;used+=give;next.push(k);}});
+    left-=used;act=next;if(used<1e-9)break;
+  }
+  return out;
+}
+const sumW=L=>L.reduce((a,d)=>a+d.bet+d.win+d.rb,0);
+function run(sc,h,prof,pre){
+  const cw=CAP.w,cs=CAP.shards,cb=CAP.box,cr=CAP.r;
+  const provT={w:prof.warm?15:CAP.provW,b:prof.warm?15:CAP.provB,r:prof.warm?15:CAP.provR},maxK={w:prof.maxW,b:prof.maxB,r:4};
+  const L0=load(h,sc.profile(0),-1,0,0),w0=sumW(L0),r0=L0.reduce((a,d)=>a+d.reads,0);
+  const up={w:clamp(Math.ceil(w0/(cw*.85)),2,maxK.w),b:clamp(Math.ceil(w0/(cb*.8)),2,maxK.b),r:clamp(Math.ceil(r0/(cr*.7)),2,4)};
+  let preW=2,preB=2;
+  if(pre&&sc.pre){let pk=0;for(let m=sc.pre.from;m<=sc.pre.to;m+=.5)pk=Math.max(pk,sumW(load(h,sc.profile(m),-1,0,0)));
+    preW=clamp(Math.ceil(pk/(cw*.85)),2,maxK.w);preB=clamp(Math.ceil(pk/(cb*.8)),2,maxK.b);}
+  const pend=[],downT={w:0,b:0,r:0};
+  const rbL=[],winL=[],betL=PV.map(()=>[]);
+  const depth=L=>{let s=0;for(const b of L)s+=b.n;return s;};
+  const take=(L,amt)=>{let got=0;while(amt-got>1e-9&&L.length){const b=L[0],x=Math.min(b.n,amt-got);b.n-=x;got+=x;if(b.n<=1e-9)L.shift();}return got;};
+  let open=0,settleRate=0,settleUntil=-1;
+  const M={peakReq:0,peakWrites:0,peakOffered:0,peakSports:0,maxBetWait:0,maxWorst:0,maxPriWait:0,syncN:0,allN:0,shedPri:0,maxW:up.w,maxB:up.b,instSec:0,maxShard:0,maxLat:0,bets:0,cacheHits:0,
+    P:PV.map(()=>({peakReq:0,maxQuota:0,maxWait:0,shedQ:0,shedC:0,expired:0,cache:0,bets:0,syncN:0,allN:0}))};
+  const S=[];
+  for(let i=0;i<N;i++){
+    const t=i*STEP,m=t/60,p=sc.profile(m);
+    for(let k=pend.length-1;k>=0;k--)if(pend[k].ready<=t){up[pend[k].k]++;pend.splice(k,1);}
+    for(const s of sc.settle||[])if(t>=s.at*60&&t<s.at*60+STEP){settleRate=open*.45/(s.dur*60);settleUntil=t+s.dur*60;open=0;}
+    const sWin=t<settleUntil?settleRate:0;
+    const L=load(h,p,i,sc.seed,sWin);
+    let winT=0,rbT=0,readAdm=0,reqTotal=0,arrW=0,stepShed=0,sportsNow=0;
+    const betAdm=new Array(NP).fill(0);
+    L.forEach((d,k)=>{
+      const P=M.P[k],q=PV[k].q,de=h.cache?1:d.dm;
+      const arr=(d.bet+d.reads+d.win+d.rb)*d.dm;reqTotal+=arr;arrW+=(d.bet+d.win+d.rb)*d.dm;sportsNow+=d.sb;
+      P.peakReq=Math.max(P.peakReq,arr);P.bets+=d.bet*d.dm*STEP;M.bets+=d.bet*d.dm*STEP;
+      if(h.cache&&d.dm>1){const c=(d.dm-1)*(d.bet+d.reads+d.win+d.rb)*STEP;P.cache+=c;M.cacheHits+=c;}
+      const b=d.bet*de,r=d.reads*de,tot=b+r,f=tot>q?q/tot:1;
+      P.maxQuota=Math.max(P.maxQuota,tot/q);
+      betAdm[k]=b*f;readAdm+=r*f;const qs=tot*(1-f);P.shedQ+=qs*STEP;stepShed+=qs;
+      winT+=d.win*de;rbT+=d.rb*de;
+    });
+    open+=sportsNow*STEP;
+    const sumBet=betAdm.reduce((a,b)=>a+b,0),offered=sumBet+winT+rbT;
+    const boxCap=up.b*cb;
+    if(offered>boxCap){const ex=offered-boxCap,r=Math.min(1,ex/Math.max(sumBet,1e-9));
+      betAdm.forEach((b,k)=>{const s=b*r;M.P[k].shedC+=s*STEP;stepShed+=s;betAdm[k]-=s;});
+      const ex2=ex-sumBet;if(ex2>0){M.shedPri+=ex2*STEP;const f=Math.max(0,(winT+rbT-ex2)/(winT+rbT));winT*=f;rbT*=f;}}
+    const D=Math.min(up.w*cw,cs);
+    const priD=depth(rbL)+depth(winL),bd=betL.map(depth),sumBD=bd.reduce((a,b)=>a+b,0);
+    const betCap=Math.max(0,D-winT-rbT),sumNow=betAdm.reduce((a,b)=>a+b,0);
+    // fila justa: divide a vazão de BET pela cota, limitada à demanda de cada provedor (max-min ponderado)
+    const shares=fairShares(betCap,betAdm.map((b,k)=>b+bd[k]/CAP.admit));
+    const share=k=>shares[k];
+    betAdm.forEach((b,k)=>{
+      const w=D<=0?99:prof.fair?priD/D+bd[k]/Math.max(share(k),1e-6):priD/D+sumBD/Math.max(betCap,1e-6);
+      if(w>CAP.admit){const room=prof.fair?share(k):betCap*b/Math.max(sumNow,1e-9);if(b>room){M.P[k].shedC+=(b-room)*STEP;stepShed+=b-room;betAdm[k]=room;}}
+      const P=M.P[k];P.allN+=betAdm[k]*STEP;if(w<CAP.sync)P.syncN+=betAdm[k]*STEP;
+    });
+    M.allN+=(winT+rbT)*STEP;if((D>0?priD/D:99)<CAP.sync)M.syncN+=(winT+rbT)*STEP;
+    const push=(Lq,n)=>{if(n>1e-9)Lq.push({t,n});};
+    push(rbL,rbT*STEP);push(winL,winT*STEP);betAdm.forEach((b,k)=>push(betL[k],b*STEP));
+    betL.forEach((Lq,k)=>{while(Lq.length&&t-Lq[0].t>CAP.ttl){M.P[k].expired+=Lq[0].n;Lq.shift();}});
+    let budget=D*STEP,proc=0;
+    for(const Lq of [rbL,winL]){const g=take(Lq,budget);budget-=g;proc+=g;}
+    if(prof.fair){
+      let act=PV.map((_,k)=>k).filter(k=>betL[k].length),it=0;
+      while(budget>1e-6&&act.length&&it++<10){const W=act.reduce((a,k)=>a+PV[k].q,0);let used=0;
+        act.forEach(k=>{used+=take(betL[k],budget*PV[k].q/W);});budget-=used;proc+=used;act=act.filter(k=>betL[k].length);if(used<1e-6)break;}
+    }else{
+      while(budget>1e-6){let kk=-1,tt=Infinity;for(let k=0;k<NP;k++)if(betL[k].length&&betL[k][0].t<tt){tt=betL[k][0].t;kk=k;}
+        if(kk<0)break;const b=betL[kk][0],x=Math.min(b.n,budget);b.n-=x;budget-=x;proc+=x;if(b.n<=1e-9)betL[kk].shift();}
+    }
+    const procRate=proc/STEP;
+    const priD2=depth(rbL)+depth(winL),bd2=betL.map(depth),sum2=bd2.reduce((a,b)=>a+b,0);
+    const waits=bd2.map((x,k)=>D<=0?99:prof.fair?priD2/D+(x>0?x/Math.max(shares[k],1e-6):0):priD2/D+sum2/Math.max(betCap,1e-6));
+    waits.forEach((w,k)=>{M.P[k].maxWait=Math.max(M.P[k].maxWait,Math.min(w,60));});
+    const avgWait=D>0?priD2/D+sum2/Math.max(betCap,1e-6):99,worst=Math.max(...waits),priWait=D>0?priD2/D:99;
+    const util=D>0?offered/D:9,lat=25+30*Math.min(util,1)+Math.min(avgWait,60)*1000;
+    // autoscaler
+    if(t%CAP.hpa===0){
+      const preOn=pre&&sc.pre&&m>=sc.pre.from&&m<sc.pre.to,backlog=priD2+sum2;
+      const needW=prof.policy==='fila'?(offered+backlog/30)/(cw*.85):offered/(cw*.85);
+      const des={w:clamp(Math.ceil(needW),preOn?preW:2,maxK.w),b:clamp(Math.ceil(offered/(cb*.8)),preOn?preB:2,maxK.b),r:clamp(Math.ceil(readAdm/(cr*.7)),2,4)};
+      for(const k of ['w','b','r']){
+        const pn=pend.filter(x=>x.k===k).length;
+        if(up[k]+pn<des[k]){let add=des[k]-up[k]-pn;if(prof.policy==='reativo')add=Math.min(add,k==='w'?2:1);for(let j=0;j<add;j++)pend.push({k,ready:t+provT[k]});downT[k]=0;}
+        else if(up[k]>des[k]&&pn===0&&backlog<1){downT[k]+=CAP.hpa;if(downT[k]>=CAP.down){up[k]--;downT[k]=0;}}
+        else downT[k]=0;
+      }
+    }
+    M.peakReq=Math.max(M.peakReq,reqTotal);M.peakWrites=Math.max(M.peakWrites,arrW);M.peakOffered=Math.max(M.peakOffered,offered);M.peakSports=Math.max(M.peakSports,sportsNow);
+    M.maxBetWait=Math.max(M.maxBetWait,Math.min(avgWait,60));M.maxWorst=Math.max(M.maxWorst,Math.min(worst,60));M.maxPriWait=Math.max(M.maxPriWait,Math.min(priWait,60));
+    M.maxW=Math.max(M.maxW,up.w);M.maxB=Math.max(M.maxB,up.b);M.instSec+=(up.w+up.b+up.r)*STEP;
+    M.maxShard=Math.max(M.maxShard,procRate/cs);M.maxLat=Math.max(M.maxLat,lat);
+    if(i%5===0)S.push({m,req:reqTotal,proc:procRate+readAdm,bw:Math.min(avgWait,30),worst:Math.min(worst,30),pw:Math.min(priWait,30),w:up.w,b:up.b,shed:stepShed,lat});
+  }
+  const sum=f=>M.P.reduce((a,P)=>a+P[f],0);
+  M.shedQuota=sum('shedQ');M.shedCap=sum('shedC');M.expired=sum('expired');
+  M.syncPct=(M.syncN+sum('syncN'))/Math.max(1,M.allN+sum('allN'));
+  M.lost=M.shedCap+M.expired;
+  M.verdict=(M.shedPri>1||M.lost>M.bets*.005)?'crit':(M.lost>1||M.shedQuota>1||M.maxWorst>1||M.syncPct<.97)?'warn':'ok';
+  let wk=0;M.P.forEach((P,k)=>{const a=P.shedC+P.expired+P.shedQ,b=M.P[wk].shedC+M.P[wk].expired+M.P[wk].shedQ;if(a>b||(a===b&&P.maxWait>M.P[wk].maxWait))wk=k;});
+  M.worstProv=wk;M.series=S;return M;
+}
+const VERD={ok:'Aguenta',warn:'Aguenta com ressalvas',crit:'Não aguenta'};
+const pill=v=>`<span class="pill ${v}">${VERD[v]}</span>`;
+
+// ---------- Estado ----------
+const H={P:100000,spin:5,sbm:.15,g:.8,cache:true};
+const NOW={maxB:4,maxW:8,policy:'reativo',fair:false,warm:false};
+const PLUS={maxB:8,maxW:16,policy:'fila',fair:true,warm:true};
+let usePre=true,sel='extremo',view='plus',results={};
+function setCaps(){CAP.shards=32000/(1-H.g);CAP.w=Math.round(3000/(.6+.4*(1-H.g)));}
+function runAll(){setCaps();results={};SC.forEach(sc=>{results[sc.id]={now:run(sc,H,NOW,usePre),plus:run(sc,H,PLUS,usePre)};});}
+const provName=k=>'Provedor '+PV[k].id;
+function provLabel(R){const P=R.P[R.worstProv];if(P.shedC+P.expired+P.shedQ<1&&P.maxWait<.3)return '<span class="hint">nenhum</span>';
+  return `${provName(R.worstProv)} <span class="hint">· espera ${sec(P.maxWait)}</span>`;}
+
+function renderTable(){
+  $('cmpBody').innerHTML=SC.map(sc=>{
+    const r=results[sc.id];
+    const v=R=>`<div class="cell-v">${pill(R.verdict)}<small>espera ${sec(R.maxWorst)}</small></div>`;
+    return `<tr data-id="${sc.id}" aria-selected="${sc.id===sel}" tabindex="0">
+      <td class="sc-name"><b>${sc.name}</b><span>${sc.when}</span></td>
+      <td class="num">${fmt(r.plus.peakReq)}</td><td class="num">${fmt(r.plus.peakWrites)}</td>
+      <td>${v(r.now)}</td><td>${v(r.plus)}</td>
+      <td class="num">${r.now.maxW} → ${r.plus.maxW}</td><td class="num">${r.now.maxB} → ${r.plus.maxB}</td>
+      <td>${provLabel(r.plus)}</td></tr>`;
+  }).join('');
+  [...$('cmpBody').querySelectorAll('tr')].forEach(tr=>{const go=()=>select(tr.dataset.id);
+    tr.addEventListener('click',go);tr.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});});
+}
+function renderTabs(){
+  $('tabs').innerHTML=SC.map(sc=>`<button class="tab" role="tab" aria-selected="${sc.id===sel}" data-id="${sc.id}">${sc.name}</button>`).join('');
+  [...$('tabs').querySelectorAll('button')].forEach(b=>b.addEventListener('click',()=>select(b.dataset.id)));
+}
+function kpi(label,val,cls,small){return `<div class="kpi"><span>${label}</span><b class="${cls||''}">${val}</b>${small?`<small>${small}</small>`:''}</div>`;}
+function renderDetail(){
+  const sc=SC.find(s=>s.id===sel),r=results[sel],R=view==='plus'?r.plus:r.now,prof=view==='plus'?PLUS:NOW;
+  $('vNow').setAttribute('aria-pressed',view==='now');$('vPlus').setAttribute('aria-pressed',view==='plus');
+  $('dName').textContent=`${sc.name} · ${sc.when}`;
+  $('dVerdict').innerHTML=pill(R.verdict)+(usePre&&sc.pre?' <span class="pill na">com pré-escala</span>':'');
+  $('dStory').textContent=sc.story;
+  const capW=Math.min(prof.maxW*CAP.w,CAP.shards);
+  $('dKpis').innerHTML=[
+    kpi('Pico de requisições',`${fmt(R.peakReq)}/s`,'',`${fmt(R.peakSports)} apostas esportivas/s no pico`),
+    kpi('Pico de escritas',`${fmt(R.peakWrites)}/s`,'',`limite deste perfil: ${fmt(capW)}/s`),
+    kpi('Respostas na hora',pct(R.syncPct),R.syncPct>=.97?'ok':R.syncPct>=.8?'warn':'crit','espera abaixo de 300 ms'),
+    kpi('Espera máx. BET',sec(R.maxWorst),R.maxWorst<=1?'ok':R.maxWorst<=4?'warn':'crit',`média ${sec(R.maxBetWait)} · ROLLBACK/WIN ${sec(R.maxPriWait)}`),
+    kpi('Perdidas',fmt(R.lost),R.lost>R.bets*.005?'crit':R.lost>0?'warn':'ok',`${fmt(R.shedCap)} recusadas · ${fmt(R.expired)} expiradas`),
+    kpi('Barradas por cota',fmt(R.shedQuota),R.shedQuota>0?'warn':'ok',R.cacheHits>0?`${fmt(R.cacheHits)} respondidas pelo cache`:'nenhum provedor passou da cota'),
+    kpi('Uso máximo dos shards',pct(R.maxShard),R.maxShard<.8?'ok':R.maxShard<.95?'warn':'crit',`4 × ${fmtK(CAP.shards/4)} escritas/s`),
+    kpi('Instância-hora',(R.instSec/3600).toFixed(1).replace('.',','),'',`até ${R.maxW} de escrita e ${R.maxB} boxes`),
+  ].join('');
+  $('provBody').innerHTML=R.P.map((P,k)=>`<tr><td><b>${provName(k)}</b> <span class="hint">${PV[k].type}</span></td>
+    <td class="num">${fmt(P.peakReq)}</td><td class="num">${pct(P.maxQuota)}</td><td class="num">${sec(P.maxWait)}</td>
+    <td class="num">${fmt(P.shedC+P.shedQ)}</td><td class="num">${fmt(P.expired)}</td><td class="num">${fmt(P.cache)}</td></tr>`).join('');
+  renderAblation(sc,r);
+  drawChart(sc,R);
+  renderTodo(sc,r,R,prof);
+}
+const KNOBS=[
+  {k:'maxB',l:'Mais boxes',base:NOW.maxB,d:v=>`até ${v} boxes`},
+  {k:'maxW',l:'Mais instâncias de escrita',base:NOW.maxW,d:v=>`até ${v} instâncias`},
+  {k:'policy',l:'Autoscaler pela fila',base:'reativo',d:()=>'volta ao reativo'},
+  {k:'fair',l:'Fila justa por provedor',base:false,d:()=>'volta à fila única'},
+  {k:'warm',l:'Instâncias aquecidas',base:false,d:()=>'volta a 45–60 s'},
+];
+let ablation=[];
+function renderAblation(sc,r){
+  const full=r.plus;ablation=[];
+  const rows=KNOBS.filter(K=>PLUS[K.k]!==K.base).map(K=>{
+    const R=run(sc,H,{...PLUS,[K.k]:K.base},usePre);ablation.push({K,R});
+    const d=R.lost-full.lost,cls=d>Math.max(1,full.lost*.05)?'up':'same';
+    return `<tr><td><b>${K.l}</b> <span class="hint">${K.d(K.base)}</span></td><td><div class="cell-v">${pill(R.verdict)}<small>espera ${sec(R.maxWorst)}</small></div></td>
+      <td class="num">${fmt(R.lost)} <span class="delta ${cls}">${d>1?'+'+fmtK(d):'='}</span></td></tr>`;
+  });
+  $('ablBody').innerHTML=`<tr><td><b>Perfil reforçado completo</b></td><td><div class="cell-v">${pill(full.verdict)}<small>espera ${sec(full.maxWorst)}</small></div></td><td class="num">${fmt(full.lost)}</td></tr>`+
+    (rows.length?rows.join(''):'<tr><td colspan="3" class="hint">O perfil reforçado está igual ao atual.</td></tr>');
+}
+function renderTodo(sc,r,R,prof){
+  const items=[];
+  const needW=Math.ceil(R.peakOffered/(CAP.w*.85)),needS=Math.ceil(R.peakOffered/(CAP.shards/4*.8)),needB=Math.ceil(R.peakOffered/(CAP.box*.8));
+  const order={ok:0,warn:1,crit:2};
+  if(order[r.plus.verdict]<order[r.now.verdict]){
+    const key=ablation.filter(a=>order[a.R.verdict]>order[r.plus.verdict]||a.R.lost-r.plus.lost>Math.max(1,r.plus.lost*.2)).map(a=>a.K.l.toLowerCase());
+    items.push(['ok',`O perfil reforçado muda o resultado de "${VERD[r.now.verdict]}" para "${VERD[r.plus.verdict]}".${key.length?` O que mais pesou: ${key.join(', ')}.`:''}`]);
+  }else if(r.plus.verdict==='ok'&&r.now.verdict==='ok'){
+    const d=(r.plus.instSec-r.now.instSec)/3600;
+    items.push(['ok',`O perfil atual já aguenta. O reforçado só ajuda na margem${d>0?` e custa ${d.toFixed(1).replace('.',',')} instância-hora a mais`:''}.`]);
+  }
+  if(needW>prof.maxW)items.push(['crit',`O pico pede ${needW} instâncias de escrita; este perfil vai até ${prof.maxW}.`]);
+  if(needB>prof.maxB)items.push(['crit',`O pico pede ${needB} boxes; este perfil vai até ${prof.maxB}.`]);
+  if(needS>4)items.push(['crit',`O pico pede ${needS} shards de ${fmtK(CAP.shards/4)} escritas/s. Planeje mover shards lógicos para mais servidores.`]);
+  const wP=R.P[R.worstProv];
+  if(prof.fair&&wP.maxWait>1){const others=Math.max(0,...R.P.filter((_,k)=>k!==R.worstProv).map(P=>P.maxWait));
+    if(others<wP.maxWait*.5)items.push(['ok',`A fila justa isolou o ${provName(R.worstProv)}: ele esperou até ${sec(wP.maxWait)}, os outros provedores no máximo ${sec(others)}.`]);}
+  if(sc.settle&&usePre&&R.maxWorst>1)items.push(['warn','A espera vem da onda de WIN da liquidação no apito final. Ela tem hora marcada: inclua a liquidação na pré-escala, mantendo a capacidade de pico até 5 minutos depois do fim do jogo.']);
+  if(!prof.fair&&sc.id==='lancamento')items.push(['warn','Com fila única, o acúmulo do provedor D atrasa as apostas de todos os provedores. A fila justa por provedor resolve isso sem precisar de mais máquina.']);
+  if(R.shedQuota>0)items.push(['ok',`A cota segurou ${fmt(R.shedQuota)} requisições acima do contrato do ${provName(R.worstProv)}. Converse com o provedor para rever a cota antes do próximo lançamento.`]);
+  if(R.maxWorst>1&&R.maxPriWait<.5)items.push(['ok',`A prioridade funcionou: ROLLBACK e WIN não passaram de ${sec(R.maxPriWait)} de espera.`]);
+  if(sc.id==='storm'&&H.cache)items.push(['ok',`O cache de Idempotency-Key respondeu ${fmt(R.cacheHits)} repetições do provedor B direto na box.`]);
+  if(sc.id==='storm'&&!H.cache)items.push(['crit','Sem o cache, as repetições de WIN e ROLLBACK passam pela cota e lotam a fila. Ligue o cache de Idempotency-Key.']);
+  if(sc.id==='giros'||sc.id==='extremo')items.push(['warn','Envie a notificação de giros grátis em ondas (por exemplo, 20% da base a cada 3 minutos). Isso achata o pico sem mudar a campanha.']);
+  if(sc.pre&&!usePre)items.push(['warn','Marque "Pré-escalar" no topo: este evento tem hora marcada.']);
+  if(!items.length)items.push(['ok',`Folga confortável: os shards chegam a ${pct(R.maxShard)} e a escrita usa até ${R.maxW} instâncias.`]);
+  $('dTodo').innerHTML=items.map(([c,t])=>`<li class="${c}">${t}</li>`).join('');
+}
+
+// ---------- Gráfico ----------
+const ch=$('chart'),tip=$('tip'),plot=$('plot');
+const CL=58,CR=920,STR=[{y0:40,y1:130,t:'requisições por segundo'},{y0:162,y1:226,t:'espera na fila (s)'},{y0:258,y1:308,t:'boxes e instâncias de escrita'}];
+const X=m=>CL+m/MINS*(CR-CL);
+function el(tag,a,p){const e=document.createElementNS(NS,tag);for(const k in a)e.setAttribute(k,a[k]);p&&p.appendChild(e);return e;}
+function nice(v){const s=[1,2,2.5,5,10];const p=Math.pow(10,Math.floor(Math.log10(Math.max(v,1))));for(const k of s)if(k*p>=v)return k*p;return 10*p;}
+let curSeries=null,xh=null;
+function drawChart(sc,R){
+  ch.innerHTML='';const S=R.series;curSeries=S;const g=el('g',{},ch);
+  let lastX=-99,row=0;
+  sc.events.forEach(ev=>{const x=X(ev.m);el('line',{x1:x,x2:x,y1:20,y2:STR[2].y1,class:'ev'},g);row=(x-lastX<110)?1-row:0;lastX=x;
+    el('text',{x:x+4,y:14+row*12,class:'evl'},g).textContent=ev.l;});
+  const maxReq=nice(Math.max(...S.map(s=>s.req))*1.08),y1=v=>STR[0].y1-(v/maxReq)*(STR[0].y1-STR[0].y0);
+  const maxWt=Math.max(5,nice(Math.max(...S.map(s=>s.worst)))),y2=v=>STR[1].y1-(Math.min(v,maxWt)/maxWt)*(STR[1].y1-STR[1].y0);
+  const maxI=Math.max(8,nice(Math.max(...S.map(s=>Math.max(s.w,s.b))))),y3=v=>STR[2].y1-(v/maxI)*(STR[2].y1-STR[2].y0);
+  STR.forEach(s=>{el('text',{x:CL,y:s.y0-8,class:'strip-t'},g).textContent=s.t;el('line',{x1:CL,x2:CR,y1:s.y1,y2:s.y1,class:'grid'},g);el('text',{x:CL-6,y:s.y1+3,'text-anchor':'end',class:'axis'},g).textContent='0';});
+  const tick=(y,v,txt)=>{el('line',{x1:CL,x2:CR,y1:y,y2:y,class:'grid','stroke-dasharray':'2 4'},g);el('text',{x:CL-6,y:y+3,'text-anchor':'end',class:'axis'},g).textContent=txt;};
+  [maxReq/2,maxReq].forEach(v=>tick(y1(v),v,fmtK(v)));tick(y2(maxWt),maxWt,maxWt+' s');[maxI/2,maxI].forEach(v=>tick(y3(v),v,v));
+  if(CAP.admit<maxWt){el('line',{x1:CL,x2:CR,y1:y2(CAP.admit),y2:y2(CAP.admit),class:'thr'},g);el('text',{x:CL-6,y:y2(CAP.admit)+3,'text-anchor':'end',class:'axis'},g).textContent='4 s';}
+  [0,30,60,90,120].forEach(m=>el('text',{x:X(m),y:324,'text-anchor':m===0?'start':m===120?'end':'middle',class:'axis'},g).textContent=m+' min');
+  const path=(fn,step)=>S.map((s,i)=>{const x=X(s.m).toFixed(1),y=fn(s).toFixed(1);return i?(step?`H${x}V${y}`:`L${x},${y}`):`M${x},${y}`;}).join('');
+  el('path',{d:path(s=>y1(s.req)),class:'ln in'},g);el('path',{d:path(s=>y1(s.proc)),class:'ln proc'},g);
+  el('path',{d:path(s=>y2(s.worst)),class:'ln in dash'},g);el('path',{d:path(s=>y2(s.bw)),class:'ln in'},g);el('path',{d:path(s=>y2(s.pw)),class:'ln proc'},g);
+  el('path',{d:path(s=>y3(s.b),true),class:'ln in'},g);el('path',{d:path(s=>y3(s.w),true),class:'ln proc'},g);
+  const L=S[S.length-1],end=(y,txt)=>el('text',{x:CR+8,y:y+4,class:'endlbl'},g).textContent=txt;
+  let ya=y1(L.req),yb=y1(L.proc);if(Math.abs(ya-yb)<12){if(ya<=yb)yb=ya+12;else ya=yb+12;}end(ya,fmtK(L.req));end(yb,fmtK(L.proc));
+  let yc=y3(L.b),yd=y3(L.w);if(Math.abs(yc-yd)<12){if(yd<=yc)yc=yd+12;else yd=yc+12;}end(yc,L.b+' box');end(yd,L.w+' esc.');
+  xh=el('line',{class:'xh',y1:20,y2:STR[2].y1,x1:-10,x2:-10},ch);
+}
+function hover(ev){
+  if(!curSeries)return;const r=ch.getBoundingClientRect(),vx=(ev.clientX-r.left)/r.width*1000;
+  if(vx<CL||vx>CR){hideTip();return;}
+  const m=(vx-CL)/(CR-CL)*MINS;let best=curSeries[0];for(const s of curSeries)if(Math.abs(s.m-m)<Math.abs(best.m-m))best=s;
+  const x=X(best.m);xh.setAttribute('x1',x);xh.setAttribute('x2',x);
+  tip.innerHTML=`<span class="tt">minuto ${best.m.toFixed(1).replace('.',',')}</span>`+
+    [['Chegando',fmt(best.req)+'/s'],['Processado',fmt(best.proc)+'/s'],['Espera BET média',sec(best.bw)],['Espera BET pior provedor',sec(best.worst)],['Espera ROLLBACK/WIN',sec(best.pw)],['Recusando',fmt(best.shed)+'/s'],['Latência p95 escrita',best.lat>=1000?sec(best.lat/1000):Math.round(best.lat)+' ms'],['Instâncias de escrita',best.w],['Boxes',best.b]]
+    .map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join('');
+  tip.hidden=false;
+  const pr=plot.getBoundingClientRect();let left=ev.clientX-pr.left+plot.scrollLeft+14;if(left+230>plot.scrollWidth)left-=256;
+  tip.style.left=left+'px';tip.style.top='8px';
+}
+function hideTip(){tip.hidden=true;if(xh){xh.setAttribute('x1',-10);xh.setAttribute('x2',-10);}}
+ch.addEventListener('pointermove',hover);ch.addEventListener('pointerleave',hideTip);
+
+function renderProviders(){$('pvBody').innerHTML=PV.map((pv,k)=>`<tr><td><b>${provName(k)}</b></td><td>${pv.type}</td><td class="num">${pct(pv.cs||pv.ss)} do ${pv.cs?'cassino':'esporte'}</td><td class="num">${fmt(pv.q)} req/s${pv.note?` <span class="hint">· ${pv.note}</span>`:''}</td></tr>`).join('');}
+function renderRef(){
+  const c=results.copa.plus,g=results.giros.plus;
+  $('refLine').textContent=`No cenário da Copa, o Jungle recebe até ${fmt(c.peakSports)} apostas esportivas por segundo, ${pct(c.peakSports/1170)} do pico do FanDuel no Super Bowl. Somando o cassino, a carteira recebe ${fmt(c.peakWrites)} escritas por segundo. Na campanha de giros grátis chegam ${fmt(g.peakWrites)} escritas por segundo.`;
+}
+function select(id){sel=id;renderTable();renderTabs();renderDetail();}
+function refresh(){runAll();renderTable();renderTabs();renderDetail();renderRef();}
+
+// Controles
+function bind(id,out,obj,key,f,parse){const i=$(id);const show=()=>{$(out).textContent=f(+i.value);};show();
+  i.addEventListener('input',show);i.addEventListener('change',()=>{obj[key]=parse?parse(i.value):+i.value;refresh();});}
+bind('hP','oP',H,'P',v=>fmtK(v));
+bind('hSpin','oSpin',H,'spin',v=>v.toString().replace('.',',')+' s');
+bind('hSbm','oSbm',H,'sbm',v=>v.toFixed(2).replace('.',','));
+bind('hG','oG',H,'g',v=>Math.round(v*100)+'%');
+bind('pB','oB',PLUS,'maxB',v=>String(v));
+bind('pW','oW',PLUS,'maxW',v=>String(v));
+$('hCache').addEventListener('change',e=>{H.cache=e.target.checked;refresh();});
+$('hPre').addEventListener('change',e=>{usePre=e.target.checked;refresh();});
+$('pPol').addEventListener('change',e=>{PLUS.policy=e.target.value;refresh();});
+$('pFair').addEventListener('change',e=>{PLUS.fair=e.target.checked;refresh();});
+$('pWarm').addEventListener('change',e=>{PLUS.warm=e.target.checked;refresh();});
+$('vNow').addEventListener('click',()=>{view='now';renderDetail();});
+$('vPlus').addEventListener('click',()=>{view='plus';renderDetail();});
+renderProviders();refresh();
+})();
+</script>
+
+</html>

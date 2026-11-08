@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!!**/dist", "!!src/migrations/.snapshot-*.json", "!!docs/**/*.html"]
+    "includes": ["**", "!!**/dist", "!!src/migrations/.snapshot-*.json", "!!docs/**/*.html", "!!docs/escala/*.js"]
   },
   "formatter": {
     "enabled": true,

@@ -1,0 +1,1510 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Jungle Wallet em Escala</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: console de operação — cabeçalho, controles, configuração ao vivo, trilha de fases, diagrama + métricas/log, cenário e provedores, gráfico, análise, configuração gerada, mensageria, manual de falhas */
+:root{
+  --bg:#eef2ef; --panel:#ffffff; --ink:#13211c; --muted:#5b6b64; --line:#cbd6d0;
+  --accent:#0d7a5f; --accent-soft:#d5ece4;
+  --read:#2f6fb5; --event:#7a4fb8; --wal:#93a39c;
+  --ok:#1f8a4c; --ok-soft:#dcefe2; --warn:#b7791f; --crit:#c2412d;
+  --warn-soft:#f7ead3; --crit-soft:#f6dcd6;
+  --c-in:#2f6fb5; --c-proc:#00875a;
+  --f-display:"Familjen Grotesk","Segoe UI",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1714; --panel:#16211d; --ink:#e3ece8; --muted:#93a59d; --line:#2a3a34;
+  --accent:#3fc29a; --accent-soft:#183a30;
+  --read:#6aa5e6; --event:#b08ae8; --wal:#5f7069;
+  --ok:#4cc27e; --ok-soft:#173523; --warn:#e3a94b; --crit:#ef6f5a;
+  --warn-soft:#3a2f1a; --crit-soft:#3d1f1a;
+  --c-in:#5596de; --c-proc:#22ad84; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0f1714; --panel:#16211d; --ink:#e3ece8; --muted:#93a59d; --line:#2a3a34;
+  --accent:#3fc29a; --accent-soft:#183a30;
+  --read:#6aa5e6; --event:#b08ae8; --wal:#5f7069;
+  --ok:#4cc27e; --ok-soft:#173523; --warn:#e3a94b; --crit:#ef6f5a;
+  --warn-soft:#3a2f1a; --crit-soft:#3d1f1a;
+  --c-in:#5596de; --c-proc:#22ad84; color-scheme:dark;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1320px;margin:0 auto;padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+header{display:grid;gap:6px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-size:clamp(28px,4vw,40px);line-height:1.1;margin:0;text-wrap:balance}
+h2{font-family:var(--f-display);font-size:22px;margin:0;text-wrap:balance}
+h3{font:600 15px var(--f-body);margin:0}
+.lede{color:var(--muted);max-width:80ch;margin:0}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rps{display:flex;align-items:center;gap:10px;flex:1 1 260px;min-width:0}
+.rps label{font-size:13px;color:var(--muted);white-space:nowrap}
+.rps input{flex:1;min-width:0;accent-color:var(--accent)}
+.rps output{font-family:var(--f-mono);font-variant-numeric:tabular-nums;min-width:11ch;text-align:right;font-weight:600}
+.btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{font:500 13px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:7px 11px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.danger{color:var(--crit);border-color:color-mix(in srgb,var(--crit) 45%,var(--line))}
+button.danger:hover{background:var(--crit-soft)}
+button.good{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}
+button.primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+select{font:500 13px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:7px 8px;max-width:100%}
+.scen-pick{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
+/* Configuração ao vivo */
+.cfgp{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:12px}
+.cfgp-head{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline;justify-content:space-between}
+.cfgp-head p{font-size:13px;color:var(--muted);margin:0;max-width:80ch}
+.cfg-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,.8fr);gap:14px 26px}
+@media (max-width:1000px){.cfg-grid{grid-template-columns:minmax(0,1fr)}}
+.cg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;align-content:start;min-width:0}
+.cg.one{grid-template-columns:minmax(0,1fr)}
+@media (max-width:520px){.cg{grid-template-columns:minmax(0,1fr)}}
+.cg .gt{grid-column:1/-1;font:600 10.5px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ctl{display:grid;gap:3px;min-width:0}
+.ctl label{font-size:13px;color:var(--muted)}
+.ctl .row{display:flex;gap:10px;align-items:center}
+.ctl input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
+.ctl output{font:600 13px var(--f-mono);font-variant-numeric:tabular-nums;min-width:6ch;text-align:right}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink)!important}
+.chk input{accent-color:var(--accent);width:16px;height:16px;flex:none}
+.hint{font-size:12.5px;color:var(--muted)}
+/* Trilha de fases */
+.phases{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+@media (max-width:760px){.phases{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.ph{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:2px;min-width:0;transition:background .3s,border-color .3s}
+.ph b{font:600 13px var(--f-body)}
+.ph span{font-size:12px;color:var(--muted);line-height:1.35}
+.ph[aria-current="step"]{background:var(--accent-soft);border-color:var(--accent)}
+.ph[aria-current="step"] b{color:var(--accent)}
+.ph.hot[aria-current="step"]{background:var(--warn-soft);border-color:var(--warn)}
+.ph.hot[aria-current="step"] b{color:var(--warn)}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px}
+@media (max-width:1050px){.stage{grid-template-columns:minmax(0,1fr)}}
+.diagram{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow-x:auto;min-width:0}
+.diagram svg{display:block;width:100%;min-width:1040px;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:14px;padding:10px 14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);min-width:1040px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.side{display:grid;gap:16px;align-content:start;min-width:0}
+.metrics{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:2px}
+.m{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.m:last-child{border-bottom:0}
+.m.sep{border-bottom:1px solid var(--line)}
+.m b{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.m b.ok{color:var(--ok)} .m b.warn{color:var(--warn)} .m b.crit{color:var(--crit)}
+.panel-title{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.log{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;max-height:320px;overflow-y:auto}
+.log ol{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.log li{font-size:12.5px;line-height:1.4;display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px;padding-left:8px;border-left:3px solid var(--line)}
+.log li time{font-family:var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.log li.ok{border-color:var(--ok)} .log li.warn{border-color:var(--warn)} .log li.crit{border-color:var(--crit)} .log li.info{border-color:var(--accent)}
+/* SVG diagrama */
+.edge{stroke:var(--line);stroke-width:1.2;fill:none}
+.frame{fill:none;stroke:var(--line);stroke-dasharray:4 4}
+.frame.new{stroke:var(--accent)}
+.frame-label{fill:var(--muted);font:600 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase}
+.frame-label.new{fill:var(--accent)}
+.hintsvg{fill:var(--muted);font:11px var(--f-mono)}
+.node rect{fill:var(--panel);stroke:var(--ink);stroke-width:1.3}
+.node .lbl{fill:var(--ink);font:600 13px var(--f-body)}
+.node .lbl.sm{font:500 11.5px var(--f-body)}
+.node .lbl.xs{font:500 10.5px var(--f-mono)}
+.node .sub{fill:var(--muted);font:11px var(--f-mono)}
+.node.up rect{stroke:var(--accent)}
+.node.primary rect{stroke:var(--accent);stroke-width:2.2}
+.node.off rect{stroke:var(--line);stroke-dasharray:4 3;fill:transparent}
+.node.off .lbl,.node.off .sub{fill:var(--muted);opacity:.55}
+.node.na{opacity:.22}
+.node.na rect{stroke:var(--line);stroke-dasharray:2 3;fill:transparent}
+.node.prov rect,.node.sync rect{stroke:var(--accent);stroke-dasharray:5 3;fill:var(--accent-soft)}
+.node.drain rect,.node.backoff rect{stroke:var(--warn);fill:var(--warn-soft)}
+.node.down rect{stroke:var(--crit);fill:var(--crit-soft);stroke-dasharray:6 3}
+.node.down .sub{fill:var(--crit)}
+.node.flash rect{fill:var(--accent-soft)}
+.node.flashw rect{fill:var(--warn-soft)}
+.qbox{fill:var(--panel);stroke:var(--event);stroke-width:2}
+.qbox.warn{stroke:var(--warn)} .qbox.crit{stroke:var(--crit)}
+.slot{fill:var(--bg);stroke:var(--line);stroke-width:1}
+.bar{fill:var(--event)} .bar.warn{fill:var(--warn)} .bar.crit{fill:var(--crit)}
+.pk{stroke:none}
+.pk.w{fill:var(--accent)} .pk.r{fill:var(--read)} .pk.ev{fill:var(--event)} .pk.msg{fill:var(--event)}
+.pk.retry{fill:var(--warn)} .pk.dlq{fill:var(--crit)} .pk.shed{fill:var(--crit)} .pk.ack{fill:var(--muted)}
+/* Cenário e provedores */
+.twin{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.6fr);gap:16px}
+@media (max-width:1050px){.twin{grid-template-columns:minmax(0,1fr)}}
+.scard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:8px;align-content:start;min-width:0}
+.scard .st{font:600 17px var(--f-display)}
+.scard p{margin:0;font-size:14px;color:var(--muted)}
+.prog{height:6px;border-radius:3px;background:var(--bg);overflow:hidden;border:1px solid var(--line)}
+.prog i{display:block;height:100%;background:var(--accent);width:0}
+.kv{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted)}
+.kv b{font-family:var(--f-mono);color:var(--ink);font-weight:600}
+.tbl{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:680px;font-size:14px}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:13px;white-space:nowrap;text-align:right}
+th.num{text-align:right}
+th{font:600 10.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+td.num.warn{color:var(--warn)} td.num.crit{color:var(--crit)} td.num.ok{color:var(--ok)}
+.pill{display:inline-block;font:600 11px var(--f-mono);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.pill.done{background:var(--accent-soft);color:var(--accent)}
+.pill.prop{background:var(--warn-soft);color:var(--warn)}
+.vp{display:inline-flex;align-items:center;gap:5px;font:600 11px var(--f-mono);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.vp::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.vp.ok{background:var(--ok-soft);color:var(--ok)} .vp.warn{background:var(--warn-soft);color:var(--warn)} .vp.crit{background:var(--crit-soft);color:var(--crit)}
+.cell-v{display:grid;gap:2px;justify-items:start}
+.cell-v small{font:12px var(--f-mono);color:var(--muted)}
+.sc-name b{display:block;font-weight:600}
+.sc-name span{font-size:12.5px;color:var(--muted)}
+/* Gráfico */
+.chart{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:8px;min-width:0}
+.chart-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;align-items:baseline}
+.chart-head h2{font-size:18px}
+.keys{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted)}
+.keys span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:3px;border-radius:2px;display:inline-block}
+.sw.area{height:9px;border-radius:2px;opacity:.55}
+.plot{position:relative;overflow-x:auto}
+.plot svg{display:block;width:100%;min-width:640px;height:auto;touch-action:pan-y}
+.grid{stroke:var(--line);stroke-width:1}
+.axis{fill:var(--muted);font:10.5px var(--f-mono)}
+.strip-t{fill:var(--muted);font:600 10.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase}
+.ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.ln.in{stroke:var(--c-in)} .ln.proc{stroke:var(--c-proc)} .ln.box{stroke:var(--c-in)}
+.ar{fill:var(--event);opacity:.35} .ar-ln{fill:none;stroke:var(--event);stroke-width:2}
+.endlbl{fill:var(--ink);font:600 11px var(--f-mono)}
+.xh{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 4px 14px color-mix(in srgb,var(--ink) 14%,transparent);min-width:190px;display:grid;gap:2px}
+.tip div{display:flex;justify-content:space-between;gap:12px}
+.tip b{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.tip .tt{font:600 11px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+/* Manual */
+.manual{display:grid;gap:14px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:6px;align-content:start;min-width:0}
+.card h3{margin:0;font:600 15px var(--f-body);display:flex;gap:8px;align-items:center}
+.card p{margin:0;font-size:14px;color:var(--muted)}
+.card code,.note code,td code{font-family:var(--f-mono);font-size:12.5px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--ink);overflow-wrap:anywhere}
+.sev{width:10px;height:10px;border-radius:2px;background:var(--crit);flex:none}
+.sev.new{background:var(--accent)}
+.cfg{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:14px}
+@media (max-width:1000px){.cfg{grid-template-columns:minmax(0,1fr)}}
+pre.yaml{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;font:12.5px/1.55 var(--f-mono);color:var(--ink)}
+pre.yaml .c{color:var(--muted)} pre.yaml .k{color:var(--accent)}
+.note{color:var(--muted);font-size:14px;max-width:88ch;margin:0}
+.mpanel{display:grid;gap:12px}
+.slo{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+@media (max-width:1000px){.slo{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:520px){.slo{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.slo .kpi{background:var(--panel);padding:10px 12px;display:grid;gap:2px;min-width:0}
+.slo .kpi span{font-size:12px;color:var(--muted)}
+.slo .kpi b{font:600 18px var(--f-mono);font-variant-numeric:tabular-nums}
+.slo .kpi b.ok{color:var(--ok)} .slo .kpi b.warn{color:var(--warn)} .slo .kpi b.crit{color:var(--crit)}
+.slo .kpi small{font-size:11.5px;color:var(--muted)}
+.sat{display:flex;align-items:center;gap:8px}
+.sat i{flex:1;height:8px;border-radius:4px;background:var(--bg);border:1px solid var(--line);overflow:hidden;position:relative}
+.sat i u{position:absolute;inset:0 auto 0 0;background:var(--ok);text-decoration:none}
+.sat i u.warn{background:var(--warn)} .sat i u.crit{background:var(--crit)}
+.sat b{font:600 12px var(--f-mono);min-width:4.5ch;text-align:right}
+.mrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:900px){.mrow{grid-template-columns:minmax(0,1fr)}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Serviço financeiro de apostas · até 4 milhões de req/s · 3.000 provedores · células</div>
+    <h1>Jungle Wallet em Escala</h1>
+    <p class="lede">No uso baixo, o sistema roda com o mínimo: 2 boxes, 2 instâncias de escrita, 2 de leitura, e a fila fica vazia, então a resposta sai na hora. Quando o pico chega, o load balancer espalha, as boxes aumentam, a fila segura o excesso enquanto as instâncias de escrita sobem, e cada escrita cai no shard da sua carteira. Leituras vão para Redis (saldo) e DynamoDB (extrato), alimentados pela Outbox. São 3.000 provedores de jogos, dos dois maiores até a cauda de 2.000 pequenos. Ajuste o perfil de escala logo abaixo (até 128 boxes, 256 instâncias de escrita e 32 shards), rode os cenários e acompanhe o painel de métricas por camada. Cada nó do diagrama representa um grupo de instâncias quando o perfil é grande. Acima de cerca de 1 milhão de req/s a plataforma se divide em células: cópias idênticas da pilha, cada uma dona de uma fatia das carteiras. O diagrama mostra uma célula; o painel soma todas. A simulação abre rodando um pico de 30 mil req/s.</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Controles da simulação">
+    <div class="rps">
+      <label for="rps">Tráfego HTTP</label>
+      <input id="rps" type="range" min="500" max="4000000" step="500" value="800">
+      <output id="rpsOut" for="rps">800 req/s</output>
+    </div>
+    <div class="btns">
+      <button id="bPeak" class="primary">Rodar pico de 30 mil</button>
+      <button id="bPeak7" class="primary">Rodar pico de 700 mil</button>
+      <button id="bPeak4" class="primary">Rodar pico de 4 milhões</button>
+      <button id="bLow">Uso baixo</button>
+      <span class="scen-pick"><label class="hint" for="scSel">Cenário</label><select id="scSel"></select><button id="bScen" class="primary">Rodar cenário</button></span>
+      <button id="bNoisy" class="danger">Provedor B enlouquece</button>
+      <button id="bCell" class="danger">Derrubar uma célula</button>
+      <button id="bBox" class="danger">Derrubar grupo de boxes</button>
+      <button id="bApi" class="danger">Derrubar grupo de escrita</button>
+      <button id="bPrimary" class="danger">Derrubar primário de um shard</button>
+      <button id="bReplica" class="danger">Derrubar réplica</button>
+      <button id="bSqs" class="danger">Tirar SQS do ar</button>
+      <button id="bWorker" class="danger">Derrubar workers</button>
+      <button id="bRestore" class="good">Restaurar tudo</button>
+      <button id="bPause">Pausar</button>
+    </div>
+  </div>
+
+  <section class="cfgp" aria-label="Configuração ao vivo">
+    <div class="cfgp-head"><h2>Configuração ao vivo</h2><p>Cada mudança vale na hora para a simulação, o painel de métricas, a tabela de configuração, o YAML e a análise. <button id="bReset" style="margin-left:6px">Perfil atual</button> <button id="bBig">Perfil 700 mil</button> <button id="bHuge">Perfil 4 milhões</button></p></div>
+    <div class="cfg-grid">
+      <div class="cg" role="group" aria-label="Perfil de escala">
+        <span class="gt">Perfil de escala</span>
+        <div class="ctl"><label for="pC">Células (cópias da pilha, por hash de carteira)</label><div class="row"><input id="pC" type="range" min="1" max="16" step="1" value="1"><output id="oC" for="pC"></output></div></div>
+        <div class="ctl"><label for="pB">Máximo de boxes por célula</label><div class="row"><input id="pB" type="range" min="2" max="128" step="2" value="4"><output id="oB" for="pB"></output></div></div>
+        <div class="ctl"><label for="pW">Máximo de instâncias de escrita por célula</label><div class="row"><input id="pW" type="range" min="4" max="256" step="4" value="8"><output id="oW" for="pW"></output></div></div>
+        <div class="ctl"><label for="pR">Máximo de instâncias de leitura por célula</label><div class="row"><input id="pR" type="range" min="2" max="64" step="2" value="4"><output id="oR" for="pR"></output></div></div>
+        <div class="ctl"><label for="pS">Shards PostgreSQL por célula</label><div class="row"><input id="pS" type="range" min="4" max="32" step="4" value="4"><output id="oS" for="pS"></output></div></div>
+        <div class="ctl"><label for="pPol">Como o autoscaler decide</label>
+          <select id="pPol"><option value="fila" selected>Pela fila (KEDA): vazão + acumulado</option><option value="reativo">Reativo: só vazão, sobe aos poucos</option></select></div>
+        <div class="ctl"><label class="chk" for="pFair"><input id="pFair" type="checkbox">Fila justa por provedor</label><span class="hint">Cada provedor tem sua fila de BET; a vazão é dividida pela cota</span></div>
+        <div class="ctl"><label class="chk" for="pWarm"><input id="pWarm" type="checkbox">Instâncias aquecidas</label><span class="hint">Pool pronto: entra quase na hora em vez de esperar subir</span></div>
+      </div>
+      <div class="cg one" role="group" aria-label="Banco e cache">
+        <span class="gt">Banco e cache</span>
+        <div class="ctl"><label for="hG">Ganho na escrita do banco (índices + chave com prefixo)</label><div class="row"><input id="hG" type="range" min="0" max="0.9" step="0.1" value="0.8"><output id="oG" for="hG"></output></div></div>
+        <div class="ctl"><label class="chk" for="hCache"><input id="hCache" type="checkbox" checked>Cache Redis de Idempotency-Key</label><span class="hint">A box responde repetições direto, sem enfileirar</span></div>
+      </div>
+      <div class="cg one" role="group" aria-label="Público dos cenários">
+        <span class="gt">Público dos cenários</span>
+        <div class="ctl"><label for="hP">Jogadores simultâneos no pico</label><div class="row"><input id="hP" type="range" min="10000" max="6000000" step="10000" value="50000"><output id="oP" for="hP"></output></div></div>
+        <span class="hint">Usado pelos cenários e pela análise. O tráfego manual segue o controle de req/s.</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="phases" role="list" aria-label="Fase atual da arquitetura">
+    <div class="ph" role="listitem" id="ph-baixo"><b>Uso baixo</b><span>Mínimo de instâncias, fila vazia, resposta na hora</span></div>
+    <div class="ph hot" role="listitem" id="ph-escalando"><b>Escalando</b><span>Autoscaler subindo boxes e instâncias</span></div>
+    <div class="ph hot" role="listitem" id="ph-fila"><b>Fila segurando</b><span>Chega mais do que dá para gravar; a fila absorve</span></div>
+    <div class="ph" role="listitem" id="ph-estavel"><b>Pico estável</b><span>Capacidade alcançou o tráfego</span></div>
+    <div class="ph" role="listitem" id="ph-drenando"><b>Drenando</b><span>Tráfego caiu; instâncias esvaziam a fila</span></div>
+    <div class="ph" role="listitem" id="ph-reduzindo"><b>Reduzindo</b><span>Autoscaler devolve o que sobrou</span></div>
+  </div>
+
+  <div class="stage">
+    <div class="diagram">
+      <svg id="net" viewBox="0 0 1300 690" role="img" aria-label="Diagrama animado: 7 provedores, load balancer, boxes de ingestão com fila por shard, instâncias de escrita e de leitura, 4 shards PostgreSQL, publishers da Outbox, SQS, projetor, Redis e DynamoDB de leitura, entrada por SQS com consumidores">
+        <g id="gEdges"></g><g id="gNodes"></g><g id="gPk"></g>
+      </svg>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--accent)"></i>escrita (BET/WIN/ROLLBACK)</span>
+        <span><i class="dot" style="background:var(--read)"></i>leitura (saldo/extrato)</span>
+        <span><i class="dot" style="background:var(--event)"></i>evento / mensagem SQS</span>
+        <span><i class="dot" style="background:var(--warn)"></i>retry com mesma Idempotency-Key</span>
+        <span><i class="dot" style="background:var(--crit)"></i>recusada (429) / DLQ</span>
+        <span><i class="dot" style="background:var(--muted)"></i>resposta do cache</span>
+        <span id="dotLegend">cada ponto ≈ 400 requisições · nó tracejado = subindo ou reserva · nó apagado = fora do perfil · ×N = grupo de N instâncias</span>
+      </div>
+    </div>
+
+    <aside class="side">
+      <div class="metrics" aria-live="off">
+        <div class="panel-title">Métricas ao vivo</div>
+        <div class="m"><span>Fase</span><b id="mPhase">–</b></div>
+        <div class="m"><span>Tráfego</span><b id="mRps">–</b></div>
+        <div class="m"><span>Latência p95 escrita</span><b id="mLat">–</b></div>
+        <div class="m sep"><span>Latência p95 leitura</span><b id="mLatR">–</b></div>
+        <div class="m"><span>Boxes</span><b id="mBox">–</b></div>
+        <div class="m"><span>Instâncias de escrita</span><b id="mW">–</b></div>
+        <div class="m"><span>Instâncias de leitura</span><b id="mR">–</b></div>
+        <div class="m"><span>Fila (mensagens)</span><b id="mIq">0</b></div>
+        <div class="m"><span>Idade da fila</span><b id="mAge">0 s</b></div>
+        <div class="m"><span>Idade: ROLLBACK · WIN · BET</span><b id="mPri">–</b></div>
+        <div class="m"><span>429 por cota de provedor</span><b id="mQuota">0</b></div>
+        <div class="m"><span>429 por capacidade · expiradas</span><b id="mShed">0 · 0</b></div>
+        <div class="m sep"><span>Respondidas pelo cache</span><b id="mCache">0</b></div>
+        <div class="m"><span>Shards</span><b id="mS">–</b></div>
+        <div class="m"><span>Células</span><b id="mCells">–</b></div>
+        <div class="m"><span>Transações confirmadas</span><b id="mCommit">0</b></div>
+        <div class="m"><span>Saldo × Ledger (4 shards)</span><b id="mLedger" class="ok">confere</b></div>
+        <div class="m"><span>Replays idempotentes</span><b id="mReplay">0</b></div>
+        <div class="m"><span>Duplicatas barradas na Inbox</span><b id="mInbox">0</b></div>
+        <div class="m"><span>Outbox pendente</span><b id="mOutbox">0</b></div>
+        <div class="m"><span>Atraso da leitura (Redis/DynamoDB)</span><b id="mProj">–</b></div>
+        <div class="m"><span>Fila SQS (FIFO) · DLQ</span><b id="mFifo">0 · 0</b></div>
+      </div>
+      <div class="log">
+        <div class="panel-title">Linha do tempo</div>
+        <ol id="log"></ol>
+      </div>
+    </aside>
+  </div>
+
+  <section class="twin">
+    <div class="scard" aria-live="polite">
+      <div class="panel-title">Cenário em execução</div>
+      <div class="st" id="sName">Modo manual</div>
+      <div class="prog" aria-hidden="true"><i id="sProg"></i></div>
+      <div class="kv" id="sKv"><span>Use o controle de tráfego ou escolha um cenário acima.</span></div>
+      <p id="sStory">Cada cenário representa 120 minutos reais, comprimidos em cerca de 2 minutos e meio.</p>
+    </div>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Grupo de provedores ao vivo</th><th class="num">Provedores</th><th class="num">req/s</th><th class="num">Uso da cota</th><th class="num">Espera BET</th><th class="num">429</th><th class="num">Expiradas</th><th class="num">Pelo cache</th></tr></thead>
+        <tbody id="pvLive"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mpanel" aria-label="Painel de métricas">
+    <div class="chart-head"><h2>Painel de métricas</h2><span class="hint">Atualiza a cada meio segundo · a primeira linha soma a plataforma; as outras são por célula · latências e custo são estimativas do modelo</span></div>
+    <div class="slo" id="sloGrid"></div>
+    <div class="tbl">
+      <table style="min-width:900px">
+        <thead><tr><th>Camada</th><th class="num">Ativas / máx.</th><th class="num">Vazão</th><th class="num">Capacidade</th><th style="width:22%">Saturação</th><th class="num">Erros</th><th class="num">Latência / atraso</th></tr></thead>
+        <tbody id="layerBody"></tbody>
+      </table>
+    </div>
+    <div class="mrow">
+      <div class="scard"><div class="panel-title">Provedores</div><div class="kv" id="provKv"></div><p class="hint" id="provTop"></p></div>
+      <div class="scard"><div class="panel-title">Custo estimado por hora</div><div class="st" id="costNow">–</div><div class="kv" id="costKv"></div><p class="hint">Preços de referência por instância, só para comparar perfis: box US$ 0,10, escrita US$ 0,20, leitura US$ 0,10, shard com réplica US$ 2,00, nó Redis US$ 0,50.</p></div>
+    </div>
+  </section>
+
+  <section class="chart" aria-label="Gráfico dos últimos 90 segundos">
+    <div class="chart-head">
+      <h2>Últimos 90 segundos</h2>
+      <div class="keys">
+        <span><i class="sw" style="background:var(--c-in)"></i>chegando (req/s) · boxes</span>
+        <span><i class="sw" style="background:var(--c-proc)"></i>processando (req/s) · instâncias de escrita</span>
+        <span><i class="sw area" style="background:var(--event)"></i>fila</span>
+      </div>
+    </div>
+    <div class="plot" id="plot">
+      <svg id="chart" viewBox="0 0 1000 262" role="img" aria-label="Três faixas: requisições por segundo chegando e processadas, tamanho da fila, e número de boxes e instâncias de escrita ao longo dos últimos 90 segundos"></svg>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+  </section>
+
+  <section class="manual">
+    <h2>Análise dos cenários com tempos reais</h2>
+    <p class="note">Os mesmos cenários calculados com tempos reais de autoscaling (instância leva 60 s para entrar, box 45 s, ou 15 s com pool aquecido) e pré-escala nos eventos com hora marcada. Compara o perfil atual com a configuração escolhida acima. "Perdidas" são apostas BET recusadas por capacidade ou expiradas; WIN e ROLLBACK nunca são recusados.</p>
+    <div class="tbl">
+      <table style="min-width:900px">
+        <thead><tr><th>Cenário</th><th class="num">Pico req/s</th><th>Perfil atual</th><th>Esta configuração</th><th class="num">Escrita máx. (total)</th><th class="num">Boxes máx. (total)</th><th>Mais afetado</th><th></th></tr></thead>
+        <tbody id="anBody"></tbody>
+      </table>
+    </div>
+    <p class="note" id="anNote"></p>
+
+    <h2>Configuração de escala</h2>
+    <div class="cfg">
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Componente</th><th>Mín</th><th>Máx</th><th>Gatilho para escalar</th><th>Tempo para entrar</th></tr></thead>
+          <tbody id="cfgBody"></tbody>
+        </table>
+      </div>
+      <pre class="yaml" id="cfgYaml" aria-label="Configuração de escala em YAML"></pre>
+    </div>
+    <p class="note">A tabela e o YAML são gerados a partir da configuração ao vivo. Na simulação os tempos são comprimidos: uma instância entra em 3 s e uma box em 4 s. Na vida real são de 30 a 90 s, e é exatamente esse intervalo que a fila precisa segurar. Para eventos conhecidos, como finais de campeonato, suba a capacidade antes do jogo começar.</p>
+
+    <h2>Configuração de mensageria</h2>
+    <p class="note">Hoje o projeto tem <code>wager-transactions.fifo</code> e <code>financial-events</code> com suas DLQs, e a Outbox publica direto numa fila SQS. Na configuração padrão, a fila da Outbox e a de eventos são a mesma (<code>test-queue</code>). Com o projetor de leitura (Redis e DynamoDB) e outros consumidores, cada um precisa da sua própria cópia de cada evento. Por isso a saída passa por um tópico SNS com uma fila por consumidor.</p>
+    <div class="tbl">
+      <table style="min-width:1000px">
+        <thead><tr><th>Fila / tópico</th><th>Tipo</th><th>Chave</th><th>Publica → consome</th><th>Configuração</th><th>DLQ</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><code>wager-rollback.fifo</code></td><td>SQS FIFO alta vazão</td><td>grupo <code>walletId</code> · dedup <code>Idempotency-Key</code></td><td>boxes → api-escrita (prioridade 1)</td><td>visibility 30 s · long poll 20 s · retenção 1 dia</td><td><code>wager-rollback-dlq.fifo</code></td><td><span class="pill prop">proposta</span></td></tr>
+          <tr><td><code>wager-win.fifo</code></td><td>SQS FIFO alta vazão</td><td>grupo <code>walletId</code> · dedup <code>Idempotency-Key</code></td><td>boxes → api-escrita (prioridade 2)</td><td>visibility 30 s · long poll 20 s · retenção 1 dia</td><td><code>wager-win-dlq.fifo</code></td><td><span class="pill prop">proposta</span></td></tr>
+          <tr><td><code>wager-bet.fifo</code></td><td>SQS FIFO alta vazão</td><td>grupo <code>walletId</code> · dedup <code>Idempotency-Key</code></td><td>boxes → api-escrita (prioridade 3)</td><td>visibility 30 s · expira em 10 s pelo <code>enqueuedAt</code></td><td><code>wager-bet-dlq.fifo</code></td><td><span class="pill prop">proposta</span></td></tr>
+          <tr><td><code>wager-transactions.fifo</code></td><td>SQS FIFO</td><td>grupo <code>walletId</code></td><td>provedores via SQS → consumer SQS</td><td>lote 10 · long poll 20 s · visibility 30 s · 5 tentativas</td><td><code>wager-transactions-dlq.fifo</code></td><td><span class="pill done">no projeto</span></td></tr>
+          <tr><td><code>financial-events</code></td><td>SQS</td><td>–</td><td>origem externa → <code>sqs-event-worker</code> com Inbox</td><td>lote 10 · long poll 20 s · visibility 30 s · retry 5 s · 5 tentativas</td><td><code>financial-events-dlq</code></td><td><span class="pill done">no projeto</span></td></tr>
+          <tr><td><code>wallet-events.fifo</code></td><td>SNS FIFO (tópico)</td><td>grupo <code>walletId</code> · dedup <code>eventId</code></td><td>outbox-publisher → assinaturas abaixo</td><td>substitui a fila única da Outbox</td><td>–</td><td><span class="pill prop">proposta</span></td></tr>
+          <tr><td><code>wallet-events-projetor.fifo</code></td><td>SQS FIFO assinando o SNS</td><td>grupo <code>walletId</code></td><td>SNS → projetor (Redis + DynamoDB)</td><td>visibility 30 s · ignora versão de carteira menor</td><td><code>wallet-events-projetor-dlq.fifo</code></td><td><span class="pill prop">proposta</span></td></tr>
+          <tr><td><code>wallet-events-integracoes</code></td><td>SQS assinando o SNS</td><td>–</td><td>SNS → notificação a provedores, analytics</td><td>uma fila por consumidor novo · retenção 4 dias</td><td><code>wallet-events-integracoes-dlq</code></td><td><span class="pill prop">proposta</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="cards">
+      <div class="card"><h3><i class="sev new"></i>Uma fila por consumidor</h3>
+        <p>Dois consumidores diferentes lendo a mesma fila disputam mensagens, e cada um vê só uma parte. O SNS entrega uma cópia de cada evento para cada fila assinante. Um consumidor novo ganha sua fila sem afetar os outros.</p></div>
+      <div class="card"><h3><i class="sev new"></i>Prioridade sem perder a regra de negócio</h3>
+        <p>Três filas separadas significam que um WIN pode ser processado antes do BET da mesma rodada. O projeto já trata esse caso: o WIN fica em <code>pending-reference</code> até o BET chegar. Sem isso, prioridade por fila não seria segura.</p></div>
+      <div class="card"><h3><i class="sev new"></i>Deduplicação não substitui idempotência</h3>
+        <p>A deduplicação do FIFO só vale por 5 minutos. Ela evita trabalho repetido, mas quem garante o dinheiro continua sendo <code>financial_operations</code> e a Inbox no PostgreSQL.</p></div>
+      <div class="card"><h3><i class="sev new"></i>Vazão do FIFO</h3>
+        <p>As boxes e os publishers enviam em lote de 10 com <code>SendMessageBatch</code>. A cota de alta vazão do FIFO varia por região: confirme na documentação da AWS e peça aumento antes do primeiro pico. Se não bastar, troque as três filas por um tópico Kafka/MSK com 256 partições por <code>walletId</code>.</p></div>
+      <div class="card"><h3><i class="sev new"></i>DLQ com redrive policy</h3>
+        <p>Hoje a aplicação conta as tentativas e move para a DLQ. Mantenha isso para erro permanente (JSON inválido vai direto) e configure também <code>RedrivePolicy</code> na fila, com o mesmo limite. Assim, uma mensagem que derruba o consumidor antes de ele contar também chega à DLQ.</p></div>
+      <div class="card"><h3><i class="sev new"></i>Segurança e alarmes</h3>
+        <p>Criptografia SSE-KMS em todas as filas. Permissão mínima por serviço: a box só envia para as filas de entrada e a api-escrita só lê e apaga delas. Alarmes em idade da mensagem mais antiga, mensagens visíveis e qualquer mensagem na DLQ.</p></div>
+    </div>
+    <div class="cfg">
+<pre class="yaml" aria-label="Configuração das filas em YAML"><span class="c"># Ilustrativo: vira Terraform/CloudFormation</span>
+<span class="k">defaults:</span>
+  receiveWaitTimeSeconds: 20      <span class="c"># long poll</span>
+  visibilityTimeoutSeconds: 30
+  maxReceiveCount: 5              <span class="c"># RedrivePolicy → DLQ</span>
+  kms: alias/jungle-wallet-sqs
+  dlqRetentionDays: 14
+<span class="k">entrada:</span>                          <span class="c"># boxes → api-escrita</span>
+  - { name: wager-rollback.fifo, priority: 1 }
+  - { name: wager-win.fifo,      priority: 2 }
+  - { name: wager-bet.fifo,      priority: 3, ttlSeconds: 10 }
+  fifo:
+    highThroughput: true          <span class="c"># dedup por grupo, limite por grupo</span>
+    deduplicationScope: messageGroup
+    fifoThroughputLimit: perMessageGroupId
+    messageGroupId: walletId
+    deduplicationId: idempotencyKey
+  retentionHours: 24
+  sendBatchSize: 10
+<span class="k">saida:</span>                            <span class="c"># outbox-publisher → SNS</span>
+  topic: wallet-events.fifo
+  messageGroupId: walletId
+  deduplicationId: eventId
+  subscriptions:
+    - wallet-events-projetor.fifo
+    - wallet-events-integracoes
+<span class="k">existentes:</span>
+  - wager-transactions.fifo       <span class="c"># + wager-transactions-dlq.fifo</span>
+  - financial-events              <span class="c"># + financial-events-dlq</span>
+<span class="k">alarmes:</span>
+  ApproximateAgeOfOldestMessage: { entrada: 2s, saida: 30s }
+  ApproximateNumberOfMessagesVisible: { dlq: "> 0" }</pre>
+<pre class="yaml" aria-label="Envelope padrão das mensagens"><span class="c"># Envelope padrão de toda mensagem</span>
+{
+  <span class="k">"schemaVersion"</span>: 1,
+  <span class="k">"messageId"</span>: "uuid",
+  <span class="k">"idempotencyKey"</span>: "do provedor",
+  <span class="k">"kind"</span>: "BET | WIN | ROLLBACK",
+  <span class="k">"providerId"</span>: "C",
+  <span class="k">"walletId"</span>: "uuid",
+  <span class="k">"walletVersion"</span>: 1842,   <span class="c"># só em eventos de saída</span>
+  <span class="k">"enqueuedAt"</span>: "2026-11-08T21:04:05.120Z",
+  <span class="k">"traceparent"</span>: "00-…",     <span class="c"># OpenTelemetry</span>
+  <span class="k">"correlationId"</span>: "uuid",
+  <span class="k">"payload"</span>: { … }
+}
+
+<span class="c"># Regras</span>
+<span class="c"># - Mudança de schema: só adiciona campo;</span>
+<span class="c">#   remover exige schemaVersion novo e</span>
+<span class="c">#   consumidores lendo as duas versões.</span>
+<span class="c"># - O consumidor ignora campo desconhecido.</span>
+<span class="c"># - Erro permanente (schema inválido)</span>
+<span class="c">#   vai direto para a DLQ, sem retry.</span></pre>
+    </div>
+
+    <h2>O que segura cada falha</h2>
+    <div class="cards">
+      <div class="card"><h3><i class="sev new"></i>Um provedor enlouquece</h3>
+        <p>Cada um dos 3.000 provedores tem cota própria na box, guardada no Redis. Se o provedor B passa da cota dele por bug ou ataque, só o excesso dele recebe 429; os outros 2.999 nem percebem. WIN e ROLLBACK ficam fora da cota, porque recusar um crédito prende dinheiro do jogador.</p></div>
+      <div class="card"><h3><i class="sev new"></i>Sobrecarga: quem passa primeiro</h3>
+        <p>Cada partição da fila tem três faixas: ROLLBACK, WIN e BET. As instâncias sempre puxam ROLLBACK antes de WIN e WIN antes de BET. Quando falta capacidade, a box recusa BET primeiro. Uma aposta nova pode esperar; devolver dinheiro não.</p></div>
+      <div class="card"><h3><i class="sev new"></i>Fila justa por provedor</h3>
+        <p>Com a fila justa ligada, cada provedor tem sua própria faixa de BET e a vazão é dividida pela cota de quem tem acúmulo. Um provedor com cota folgada que lança um jogo sem avisar enche só a fila dele; os outros continuam respondendo na hora.</p></div>
+      <div class="card"><h3><i class="sev new"></i>Instâncias aquecidas</h3>
+        <p>Um pool de instâncias já iniciadas, com conexões abertas, entra no tráfego em segundos. Isso encurta o intervalo que a fila precisa segurar quando o pico chega sem aviso. O custo é manter algumas instâncias paradas.</p></div>
+      <div class="card"><h3><i class="sev new"></i>Pico chega</h3>
+        <p>O tráfego sobe mais rápido do que instâncias conseguem nascer. As boxes aceitam e gravam na fila; a idade da fila sobe enquanto o autoscaler leva a escrita até o máximo do perfil. Quando a capacidade alcança o tráfego, a fila esvazia e as respostas voltam a ser síncronas.</p></div>
+      <div class="card"><h3><i class="sev new"></i>Uma célula cai</h3>
+        <p>Cada carteira mora numa célula só, escolhida por <code>hash(walletId)</code>. Se uma célula inteira cai, só as carteiras dela ficam esperando o failover; as outras células seguem sem perceber. Com 8 células, o estrago fica em 12,5% das carteiras, não em 100%. Por isso o perfil de 4 milhões usa uma célula a mais do que o tráfego pede.</p></div>
+      <div class="card"><h3><i class="sev new"></i>Box de ingestão cai</h3>
+        <p>A box não guarda requisição na memória: grava na fila replicada e só depois responde. O load balancer tira ela do pool e as outras seguram. O que estava em voo volta do provedor com a mesma <code>Idempotency-Key</code>.</p></div>
+      <div class="card"><h3><i class="sev new"></i>Fila enche</h3>
+        <p>A fila tem limite. Se a mensagem mais antiga passa de 4 s, as boxes recusam o excesso com 429 e <code>Retry-After</code>. Comando com mais de 10 s expira, porque um BET de rodada fechada não deve debitar depois.</p></div>
+      <div class="card"><h3><i class="sev"></i>Instância de escrita cai</h3>
+        <p>O load balancer tira a instância do pool. A mensagem que ela tinha puxado não foi confirmada e volta para a fila. Se o commit já tinha acontecido, o <code>INSERT … ON CONFLICT DO NOTHING</code> em <code>financial_operations</code> devolve o snapshot original.</p></div>
+      <div class="card"><h3><i class="sev"></i>Primário de um shard cai</h3>
+        <p>Só um quarto das carteiras é afetado. O Patroni promove a réplica síncrona daquele shard; nenhum commit confirmado se perde. A partição dele acumula na fila durante o failover, enquanto os outros 3 shards seguem normais.</p></div>
+      <div class="card"><h3><i class="sev"></i>Réplica cai</h3>
+        <p>Saldo para tela vem do Redis e extrato recente do DynamoDB, então a réplica só atende extrato com mais de 90 dias, reconciliação e relatórios pesados. Ela volta e reaplica o WAL. Débito e crédito nunca leem de réplica, Redis ou DynamoDB: o saldo é decidido sob <code>SELECT … FOR UPDATE</code> no primário do shard.</p></div>
+      <div class="card"><h3><i class="sev new"></i>Leitura atrasa ou Redis cai</h3>
+        <p>Redis e DynamoDB são alimentados pelos eventos da Outbox, então podem ficar alguns milissegundos atrás. Se o SQS cai, o atraso cresce e a tela pode mostrar saldo velho por alguns segundos. Se o Redis perde os dados, o projetor reconstrói a partir do PostgreSQL. Evento repetido ou fora de ordem é ignorado pelo <code>version</code>. Nenhum dinheiro errado sai disso, porque a decisão de débito acontece no PostgreSQL.</p></div>
+      <div class="card"><h3><i class="sev"></i>SQS fora do ar</h3>
+        <p>O evento já está gravado na Outbox no mesmo commit da transação. Os publishers fazem backoff exponencial e a fila de pendentes cresce, mas nada se perde. Quando o SQS volta, eles drenam a Outbox. O que esgotar as tentativas vira <code>FAILED</code> e é reenviado com <code>outbox:redrive</code>.</p></div>
+      <div class="card"><h3><i class="sev"></i>Publisher da Outbox morre</h3>
+        <p>O claim usa <code>FOR UPDATE SKIP LOCKED</code> com lease. Se o publisher morre segurando eventos, o lease expira e outro publisher os retoma. Fencing impede que o publisher antigo confirme depois. Republicar é seguro porque o <code>eventId</code> é o mesmo.</p></div>
+      <div class="card"><h3><i class="sev"></i>Consumidor SQS morre</h3>
+        <p>A mensagem sem ACK volta para a fila após o visibility timeout. Na reentrega, a Inbox reconhece a mensagem já processada e só confirma, sem mover saldo. JSON inválido ou provider desconhecido vão direto para a DLQ.</p></div>
+    </div>
+
+    <h2>O que já existe e o que é proposta</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Peça</th><th>Status</th><th>Onde / como</th></tr></thead>
+        <tbody>
+          <tr><td>Idempotência, lock pessimista por wallet, Ledger imutável</td><td><span class="pill done">no projeto</span></td><td><code>financial_operations</code>, triggers e CHECKs do schema</td></tr>
+          <tr><td>Inbox, Outbox com lease e SKIP LOCKED, DLQ, redrive</td><td><span class="pill done">no projeto</span></td><td><code>sqs-event-worker</code>, <code>outbox-worker</code>, <code>outbox-redrive</code></td></tr>
+          <tr><td>Várias instâncias da API e dos workers</td><td><span class="pill done">no projeto</span></td><td>Sem estado em memória; testado com várias instâncias</td></tr>
+          <tr><td>Escrita otimizada no banco</td><td><span class="pill done">feito pelo time</span></td><td>Índices para leitura e chave com prefixo ordenado na escrita; cerca de 80% mais rápido, mesma integridade</td></tr>
+          <tr><td>Boxes de ingestão</td><td><span class="pill prop">proposta</span></td><td>Processo leve: auth, validação, <code>Idempotency-Key</code> e publish na fila. Não toca no banco</td></tr>
+          <tr><td>Fila particionada por carteira</td><td><span class="pill prop">proposta</span></td><td>Caminho de <code>wager-transactions.fifo</code> com <code>MessageGroupId=walletId</code> em alta vazão</td></tr>
+          <tr><td>Grupos dedicados de escrita e leitura</td><td><span class="pill prop">proposta</span></td><td>Mesmo build NestJS, dois deployments com rotas diferentes no load balancer</td></tr>
+          <tr><td>4 shards PostgreSQL com 256 shards lógicos</td><td><span class="pill prop">proposta</span></td><td>Roteamento por <code>hash(walletId) % 256</code>; transação sempre local a um shard</td></tr>
+          <tr><td>Leitura em Redis (saldo) e DynamoDB (extrato), alimentada pela Outbox (CQRS)</td><td><span class="pill prop">proposta</span></td><td>Projetor consome os eventos já publicados; DynamoDB roda no LocalStack que o projeto já usa</td></tr>
+          <tr><td>Autoscaling por idade da fila</td><td><span class="pill prop">proposta</span></td><td>KEDA para escrita, publishers e consumers; HPA por CPU para leitura</td></tr>
+          <tr><td>Cota por provedor (3.000 provedores)</td><td><span class="pill prop">proposta</span></td><td>Token bucket por <code>providerId</code> na box, no Redis; WIN e ROLLBACK isentos</td></tr>
+          <tr><td>Prioridade ROLLBACK &gt; WIN &gt; BET</td><td><span class="pill prop">proposta</span></td><td>Três filas de entrada; corte de carga começa por BET</td></tr>
+          <tr><td>Fila justa por provedor</td><td><span class="pill prop">proposta</span></td><td>Faixa de BET por provedor, drenagem ponderada pela cota</td></tr>
+          <tr><td>Arquitetura em células</td><td><span class="pill prop">proposta</span></td><td>Mesma pilha replicada; roteador global por <code>hash(walletId)</code>; cada célula com seu SQS, Redis e shards</td></tr>
+          <tr><td>Pool de instâncias aquecidas</td><td><span class="pill prop">proposta</span></td><td>Instâncias já iniciadas e conectadas, prontas para entrar no pico</td></tr>
+          <tr><td>Cache Redis de Idempotency-Key e cota</td><td><span class="pill prop">proposta</span></td><td>A box responde repetições direto, sem enfileirar; saldo para decidir débito nunca vem do cache</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">A simulação é ilustrativa: capacidades e tempos são estimativas para dimensionar, não medições. Os provedores têm nomes genéricos. Antes de fixar números, rode teste de carga contra os shards reais. O PostgreSQL continua sendo a fonte da verdade e as filas são só transporte at-least-once, então toda falha se resolve com repetição idempotente.</p>
+  </section>
+</div>
+
+<script>
+(()=>{
+const NS='http://www.w3.org/2000/svg';
+const $=id=>document.getElementById(id);
+const gE=$('gEdges'),gN=$('gNodes'),gP=$('gPk');
+const fmt=n=>Math.round(n).toLocaleString('pt-BR');
+const fmtK=n=>n>=1e6?(n/1e6).toFixed(2).replace('.',',')+'M':n>=1000?(n/1000).toFixed(n>=100000?0:1).replace('.',',')+'k':String(Math.round(n));
+const fmtMil=n=>n>=1e6?(n/1e6).toFixed(1).replace('.',',')+' mi':n>=1000?(n/1000).toFixed(n>=10000?0:1).replace('.',',')+' mil':String(Math.round(n));
+const sec=n=>n>=60?'> 60 s':n.toFixed(1).replace('.',',')+' s';
+const pct=n=>(n*100).toFixed(0)+'%';
+const pct1=n=>(n*100).toFixed(n>=.9995?2:1).replace('.',',')+'%';
+const money=n=>'US$ '+n.toFixed(n>=100?0:2).replace('.',',');
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lin=(m,a,b,v0,v1)=>m<=a?v0:m>=b?v1:v0+(v1-v0)*(m-a)/(b-a);
+const inAny=(m,list,dur)=>list.some(g=>m>=g&&m<g+dur);
+
+// ================= 3.000 provedores em 7 grupos =================
+const PV=[
+  {id:'A',short:'A',name:'Provedor A',type:'Slots',n:1,cs:.22,ss:0,head:1.3},
+  {id:'B',short:'B',name:'Provedor B',type:'Cassino ao vivo e crash',n:1,cs:.14,ss:0,head:3,note:'cota folgada'},
+  {id:'T1',short:'3–10',name:'Grandes (3º ao 10º)',type:'Slots e esportes',n:8,cs:.22,ss:.40,head:1.3},
+  {id:'T2',short:'11–50',name:'Médios (11º ao 50º)',type:'Slots, crash e e-sports',n:40,cs:.18,ss:.25,head:1.3},
+  {id:'T3',short:'51–300',name:'Regionais (51º ao 300º)',type:'Slots regionais e esporte virtual',n:250,cs:.12,ss:.17,head:1.3},
+  {id:'T4',short:'301–1k',name:'Pequenos (301º ao 1.000º)',type:'Estúdios pequenos',n:700,cs:.08,ss:.10,head:1.3},
+  {id:'T5',short:'1k–3k',name:'Cauda (1.001º ao 3.000º)',type:'Cauda longa',n:2000,cs:.04,ss:.08,head:1.3},
+];
+const NP=PV.length,NPROV=PV.reduce((a,p)=>a+p.n,0);
+const MANUAL_W=PV.map(p=>p.cs*.85+p.ss*.15);
+const copaBet=m=>(m>=10&&m<15)?3:(m>=60&&m<75)?.5:inAny(m,[38,80,101],2)?5:1;
+const SC=[
+  {id:'madrugada',name:'Madrugada de terça',when:'03:00, dia útil',seed:1,
+   story:'Pouca gente jogando, quase só cassino. É o piso do sistema: tudo roda no mínimo de instâncias, com resposta na hora.',
+   profile:m=>({casino:.05,sports:.01}),events:[],pre:null},
+  {id:'noite',name:'Noite de semana',when:'20:00 às 22:00',seed:2,
+   story:'O horário nobre do cassino. Jogadores entram aos poucos ao longo de duas horas. É a carga contínua mais alta de um dia comum.',
+   profile:m=>({casino:lin(m,0,120,.40,.55),sports:.05}),events:[],pre:null},
+  {id:'brasileirao',name:'Rodada do Brasileirão',when:'domingo, 16:00',seed:3,
+   story:'Dez jogos ao mesmo tempo. A aposta ao vivo cresce até o início, dispara em cada gol e cai no intervalo. No apito final chega uma onda de WIN da liquidação.',
+   profile:m=>({casino:.40,sports:m<5?.08:m<110?lin(m,5,15,.08,.35):lin(m,110,118,.35,.10),
+     betMult:(m>=10&&m<15)?2.5:(m>=60&&m<75)?.6:inAny(m,[40,85,98],1.5)?4:1}),
+   settle:[{at:110,dur:3}],
+   events:[{m:15,l:'início'},{m:40,l:'gol'},{m:60,l:'intervalo'},{m:85,l:'gol'},{m:98,l:'gol'},{m:110,l:'fim · liquidação'}],
+   pre:{from:0,to:116}},
+  {id:'copa',name:'Jogo do Brasil na Copa',when:'quarta, 16:00',seed:4,
+   story:'O maior evento esportivo do ano. O pico de apostas acontece nos minutos antes do início e de novo em cada gol.',
+   profile:m=>({casino:.25,sports:m<15?lin(m,0,15,.20,.75):m<110?.75:lin(m,110,118,.75,.20),betMult:copaBet(m)}),
+   settle:[{at:110,dur:3}],
+   events:[{m:15,l:'início'},{m:38,l:'gol'},{m:60,l:'intervalo'},{m:80,l:'gol'},{m:101,l:'gol'},{m:110,l:'fim · liquidação'}],
+   pre:{from:0,to:116}},
+  {id:'giros',name:'Campanha de giros grátis',when:'sexta, 20:00',seed:5,
+   story:'O marketing manda giros grátis para toda a base às 20:30. Em 3 minutos quase todo mundo entra e gira mais rápido. Os 3.000 provedores sobem juntos.',
+   profile:m=>({casino:m<30?.40:m<33?lin(m,30,33,.40,.95):m<55?.95:lin(m,55,70,.95,.50),sports:.05,spinMult:(m>=30&&m<55)?1.6:1}),
+   events:[{m:30,l:'notificação enviada'},{m:55,l:'fim da campanha'}],
+   pre:{from:15,to:60}},
+  {id:'extremo',name:'Final da Copa + campanha no intervalo',when:'domingo, 16:00',seed:8,
+   story:'O pior caso planejado: a final da Copa com o Brasil, e o marketing dispara giros grátis no intervalo. Esporte e cassino no pico ao mesmo tempo.',
+   profile:m=>({casino:m<60?.25:m<62?lin(m,60,62,.25,.85):m<75?.85:lin(m,75,85,.85,.30),
+     sports:m<15?lin(m,0,15,.20,.75):m<110?.75:lin(m,110,118,.75,.20),betMult:copaBet(m),spinMult:(m>=60&&m<75)?1.6:1}),
+   settle:[{at:110,dur:3}],
+   events:[{m:15,l:'início'},{m:38,l:'gol'},{m:60,l:'intervalo + giros grátis'},{m:80,l:'gol'},{m:101,l:'gol'},{m:110,l:'fim · liquidação'}],
+   pre:{from:0,to:116}},
+  {id:'lancamento',name:'Provedor B lança jogo sem avisar',when:'noite de semana',seed:7,
+   story:'O provedor B lança um crash game e não avisa a operação. Os jogadores dele sextuplicam em 3 minutos. A cota do B é folgada, então quem decide se os outros 2.999 provedores sofrem é a fila.',
+   profile:m=>({casino:.5,sports:.05,legit:{B:m<30?1:m<33?lin(m,30,33,1,6):m<80?6:lin(m,80,100,6,3)}}),
+   events:[{m:30,l:'lançamento do jogo'},{m:80,l:'campanha esfria'}],pre:null},
+  {id:'storm',name:'Provedor A em loop de retry',when:'noite de semana, incidente',seed:6,
+   story:'Um bug no maior provedor faz ele reenviar cada chamada várias vezes, com a mesma Idempotency-Key. O tráfego dele quadruplica por 12 minutos. Ninguém avisa antes.',
+   profile:m=>({casino:.5,sports:.05,dup:{A:(m>=40&&m<52)?4:1}}),
+   events:[{m:40,l:'provedor A em loop'},{m:52,l:'provedor corrige'}],pre:null},
+];
+function noiseF(i,k){return 1+.04*Math.sin(i*.37+k)*Math.sin(i*.051+k*2);}
+function load(h,p,i,seed,sWin){
+  const nz=i<0?1:noiseF(i,seed),casinoP=h.P*p.casino*nz,sportsP=h.P*p.sports*nz;
+  const spins=casinoP/(h.spin/(p.spinMult||1)),sBets=sportsP*h.sbm*(p.betMult||1)/60;
+  return PV.map(pv=>{
+    const lm=(p.legit&&p.legit[pv.id])||1,dm=(p.dup&&p.dup[pv.id])||1;
+    const sp=spins*pv.cs*lm,sb=sBets*pv.ss*lm;
+    return {bet:sp+sb,win:sp+sWin*pv.ss,rb:sp*.003+sb*.01,reads:sp*.5+sportsP*pv.ss*.05*lm,dm,sb};
+  });
+}
+const sumW=L=>L.reduce((a,d)=>a+d.bet+d.win+d.rb,0);
+
+// ================= Configuração ao vivo =================
+const BASE={maxB:4,maxW:8,maxR:4,shards:4,policy:'fila',fair:false,warm:false,cells:1};
+const BIG={maxB:96,maxW:192,maxR:64,shards:20,policy:'fila',fair:true,warm:true,cells:1};
+const HUGE={...BIG,cells:8};
+const cfg={...BASE,g:.8,cache:true,P:50000};
+const W_BASE=3000,SHARD_BASE=8000,BOX_CAP=10000,CAP_R=5000,PUB_CAP=25000,REDIS_NODE=80000,LB_NODE=100000;
+const capW=()=>W_BASE/(.6+.4*(1-cfg.g));
+const shardCap=()=>SHARD_BASE/(1-cfg.g);
+const NB=8,NW=16,NR=4;
+let U={b:1,w:1,r:1};
+function updUnits(){U={b:Math.max(1,Math.ceil(cfg.maxB/NB)),w:Math.max(1,Math.ceil(cfg.maxW/NW)),r:Math.max(1,Math.ceil(cfg.maxR/NR))};}
+const maxNodes={b:()=>Math.ceil(cfg.maxB/U.b),w:()=>Math.ceil(cfg.maxW/U.w),r:()=>Math.ceil(cfg.maxR/U.r)};
+// Cota de cada provedor: proporcional à capacidade contratada da plataforma (pico planejado), com folga
+function plannedPeak(prof){const c=prof||cfg;return Math.min(c.maxB*BOX_CAP,c.maxW*capW(),c.shards*shardCap())/.7;}
+function updQuotas(){const pk=plannedPeak();PV.forEach((p,k)=>{p.Q=pk*MANUAL_W[k]*.6*p.head;p.q=p.Q*cfg.cells/p.n;});}
+let cellsDown=0;
+const gTot=()=>curTotal*cfg.cells;
+
+// ================= Simulação ao vivo =================
+const ADMIT_AGE=4,TTL=10,SYNC_AGE=.3,NSH=4,WF=.7,LOW=800,SPEED=.8;
+const DOTS=[400,1000,2500,5000,10000];
+let DOT=400;
+let t=0,paused=false,rps=LOW,lastRaf=null,ramp=null,manualScen=0,scen=null,noisyExtra=0,curTotal=LOW;
+const timers=[];
+const schedule=(d,fn)=>timers.push({at:t+d,fn});
+const stats={commits:0,ledger:0,replays:0,inboxDup:0,published:0,dlq:0,retries:0,shed:0,expired:0,quota:0,cache:0};
+const PS=PV.map(()=>({cnt:0,rate:0,shedQ:0,shedC:0,expired:0,cache:0,all:0,allRate:0}));
+const outbox={pending:0};let projQ=0;
+const queue=[];
+const iq=[...Array(NSH)].map(()=>({rb:[],win:[],bet:PV.map(()=>[]),drr:PV.map(()=>0)}));
+let sqsDown=false,lat=30,latR=10;
+const rate={proc:0,reads:0,wIn:0,betIn:0,rIn:0,pub:0,proj:0};
+const acc0=()=>({proc:0,reads:0,wIn:0,betIn:0,rIn:0,pub:0,proj:0,lost:0,sync:0,quota:0,shed:0,exp:0});
+let A_=acc0();
+const WIN=[];// janela de 60 s em fatias de 0,5 s
+
+function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);parent&&parent.appendChild(e);return e;}
+function mk(x,y,w,h,label,compact){
+  const n={x,y,w,h,label,state:'up',epoch:0,cls:'',flashUntil:0,flashKind:'',compact,inPool:true,acc:0};
+  n.g=el('g',{class:'node'},gN);
+  el('rect',{x:x-w/2,y:y-h/2,width:w,height:h,rx:6},n.g);
+  if(compact){n.l=el('text',{x,y:y+4,'text-anchor':'middle',class:'lbl '+(compact==='xs'?'xs':'sm')},n.g);n.l.textContent=label;}
+  else{n.l=el('text',{x,y:y-3,'text-anchor':'middle',class:'lbl'},n.g);n.l.textContent=label;n.s=el('text',{x,y:y+13,'text-anchor':'middle',class:'sub'},n.g);}
+  return n;
+}
+function edgePt(a,b){const dx=b.x-a.x,dy=b.y-a.y;const sx=dx?(a.w/2)/Math.abs(dx):Infinity,sy=dy?(a.h/2)/Math.abs(dy):Infinity;const s=Math.min(sx,sy,1);return{x:a.x+dx*s,y:a.y+dy*s};}
+function line(a,b){const p=edgePt(a,b),q=edgePt(b,a);el('line',{x1:p.x,y1:p.y,x2:q.x,y2:q.y,class:'edge'},gE);}
+function frame(x,y,w,h,label,lx,ly,isNew){el('rect',{x,y,width:w,height:h,rx:10,class:'frame'+(isNew?' new':'')},gE);const tx=el('text',{x:lx,y:ly,'text-anchor':'middle',class:'frame-label'+(isNew?' new':'')},gE);tx.textContent=label;return tx;}
+
+frame(238,60,256,288,'Ingestão · escritas',366,52,true);
+frame(506,22,130,316,'api-escrita',571,16,true);
+frame(506,398,130,140,'api-leitura',571,392,true);
+const pgLabel=frame(700,22,200,334,'Postgres · 4 shards',800,16,true);
+frame(945,22,130,196,'outbox-publisher',1010,16,false);
+el('text',{x:190,y:432,class:'hintsvg'},gE).textContent='leituras';
+el('text',{x:60,y:76,'text-anchor':'middle',class:'hintsvg'},gE).textContent='3.000 provedores';
+const cellTxt=el('text',{x:180,y:168,'text-anchor':'middle',class:'hintsvg'},gE);cellTxt.textContent='célula única';
+
+const provNodes=PV.map((p,i)=>mk(60,96+i*34,108,28,p.short,true));
+const lb=mk(180,200,104,46,'Load balancer');
+const rdWay={x:180,y:460,w:0,h:0};
+const boxes=[...Array(NB)].map((_,i)=>{const b=mk(300,84+i*30,104,24,'box-'+'abcdefgh'[i],true);if(i>1){b.state='off';b.inPool=false;}b.idx=i;return b;});
+const iqN={x:430,y:204,w:116,h:176};
+const qg=el('g',{},gN);
+const qRect=el('rect',{x:iqN.x-iqN.w/2,y:iqN.y-iqN.h/2,width:iqN.w,height:iqN.h,rx:9,class:'qbox'},qg);
+const qTitle=el('text',{x:iqN.x,y:iqN.y-68,'text-anchor':'middle',style:'fill:var(--ink);font:600 13px var(--f-body)'},qg);qTitle.textContent='Fila';
+const qSub=el('text',{x:iqN.x,y:iqN.y-52,'text-anchor':'middle',class:'hintsvg'},qg);
+const BT=iqN.y-40,BH=96,BW=18,BG=7,bx0=iqN.x-(NSH*BW+(NSH-1)*BG)/2;
+const bars=[...Array(NSH)].map((_,i)=>{const x=bx0+i*(BW+BG);el('rect',{x,y:BT,width:BW,height:BH,rx:3,class:'slot'},qg);
+  el('text',{x:x+BW/2,y:BT+BH+15,'text-anchor':'middle',class:'hintsvg'},qg).textContent='g'+(i+1);
+  return el('rect',{x,y:BT+BH,width:BW,height:0,rx:3,class:'bar'},qg);});
+const writes=[...Array(NW)].map((_,i)=>{const col=Math.floor(i/8),row=i%8;const a=mk(539+col*64,44+row*37,60,30,'e'+(i+1),'xs');if(i>1){a.state='off';a.inPool=false;}a.idx=i;return a;});
+const reads=[...Array(NR)].map((_,i)=>{const a=mk(571,422+i*34,118,28,'leitura-'+(i+1),true);if(i>1){a.state='off';a.inPool=false;}a.idx=i;return a;});
+const shards=[0,1,2,3].map(i=>{
+  const s=mk(800,72+i*80,184,66,'');
+  s.l.setAttribute('y',s.y-12);s.s.setAttribute('y',s.y+5);
+  s.s2=el('text',{x:s.x,y:s.y+20,'text-anchor':'middle',class:'sub'},s.g);
+  s.i=i;s.pName=(i+1)+'a';s.rName=(i+1)+'b';s.failed=0;s.failover=false;s.repState='up';s.acc=0;s.cnt=0;s.rate=0;
+  return s;
+});
+const perGroup=()=>cfg.shards/4;
+const primUp=s=>s.failed<perGroup();
+const shardNodeCap=s=>(perGroup()-s.failed)*shardCap();
+const nosql=mk(800,452,184,54,'Redis + DynamoDB');
+const pubs=[...Array(4)].map((_,i)=>{const p=mk(1010,52+i*44,120,32,'pub-'+(i+1),true);if(i>1)p.state='off';p.claimed=0;p.backoff=0;p.backoffUntil=0;p.idx=i;return p;});
+const pubNodeCap=()=>U.w*PUB_CAP;
+const projCap=()=>Math.max(40000,2*U.w*PUB_CAP);
+const sqsOut=mk(1170,120,104,54,'SQS eventos');
+const pref=mk(1010,292,124,44,'pending-ref');pref.s.textContent='retoma pendências';
+const proj=mk(1170,452,110,46,'projetor');
+const provSqs=mk(60,604,104,46,'Provedores');provSqs.s.textContent='via SQS';
+const fifo=mk(180,604,120,46,'wager-tx.fifo');
+const dlqN=mk(180,664,110,34,'DLQ',true);
+const cons=[0,1,2].map(i=>{const c=mk(1010,560+i*42,128,30,'consumer-'+(i+1),true);if(i>1)c.state='off';c.busy=false;c.msg=null;c.idx=i;return c;});
+const cluster={x:800,y:189,w:200,h:334};
+
+provNodes.forEach(n=>line(n,lb));boxes.forEach(b=>{line(lb,b);line(b,iqN);});writes.forEach(a=>{line(iqN,a);line(a,cluster);});
+line(lb,rdWay);reads.forEach(r=>{line(rdWay,r);line(r,nosql);});
+pubs.forEach(p=>{line(cluster,p);line(p,sqsOut);});line(pref,cluster);line(sqsOut,proj);line(proj,nosql);
+line(provSqs,fifo);line(fifo,dlqN);cons.forEach(c=>{line(fifo,c);line(c,cluster);});
+
+const pks=[];
+function move(a,b,dur,cls,done){
+  if(pks.length>900){done&&done();return;}
+  const p=edgePt(a,b),q=edgePt(b,a);
+  const c=el('circle',{r:cls==='ack'?2.4:3.6,class:'pk '+cls,cx:p.x,cy:p.y},gP);
+  pks.push({p,q,t0:t,dur,c,done});
+}
+function flash(n,kind){n.flashUntil=t+.25;n.flashKind=kind||'';}
+
+const logEl=$('log');
+function log(sev,text){
+  const li=document.createElement('li');li.className=sev;
+  const m=Math.floor(t/60),s=Math.floor(t%60);
+  li.innerHTML=`<time>${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}</time><span></span>`;
+  li.lastChild.textContent=text;logEl.prepend(li);
+  while(logEl.children.length>60)logEl.lastChild.remove();
+}
+
+const rr={box:0,read:0,part:0,pub:0};
+const upIn=pool=>pool.filter(x=>x.state==='up'&&x.inPool);
+const headAge=L=>L.length?t-L[0].at:0;
+const betAgeS=s=>Math.max(...iq[s].bet.map(headAge));
+const partAge=s=>Math.max(headAge(iq[s].rb),headAge(iq[s].win),betAgeS(s));
+const laneAge=k=>Math.max(...iq.map(Q=>k==='bet'?Math.max(...Q.bet.map(headAge)):headAge(Q[k])));
+const provAge=k=>Math.max(...iq.map(Q=>headAge(Q.bet[k])));
+const maxAge=()=>Math.max(...iq.map((_,s)=>partAge(s)));
+const sumDot=L=>{let s=0;for(const r of L)s+=r.dot;return s;};
+const qReq=s=>sumDot(iq[s].rb)+sumDot(iq[s].win)+iq[s].bet.reduce((a,L)=>a+sumDot(L),0);
+const qLen=s=>iq[s].rb.length+iq[s].win.length+iq[s].bet.reduce((a,L)=>a+L.length,0);
+const qTotal=()=>iq.reduce((a,_,s)=>a+qReq(s),0);
+const writeCap=()=>upIn(writes).length*U.w*capW();
+const boxCap=()=>upIn(boxes).length*U.b*BOX_CAP;
+const readCap=()=>upIn(reads).length*U.r*CAP_R;
+const dbCap=()=>shards.reduce((a,s)=>a+shardNodeCap(s),0);
+const inst=(pool,u)=>pool.filter(x=>x.state==='up').length*u;
+
+// HTTP
+function cls(r){return r.retry?'retry':(r.write?'w':'r');}
+function httpReq(req){move(provNodes[req.prov],lb,.26,cls(req),()=>req.write?toBox(req):toRead(req));}
+function toRead(req){
+  const k=req.prov,ps=PS[k];
+  A_.rIn+=req.dot;ps.cnt+=req.dot;
+  if(!req.retry&&ps.rate>PV[k].Q&&Math.random()>PV[k].Q/ps.rate){stats.quota+=req.dot;ps.shedQ+=req.dot;A_.quota+=req.dot;move(lb,provNodes[k],.24,'shed');return;}
+  move(lb,rdWay,.2,'r',()=>{
+    const ups=upIn(reads);
+    if(!ups.length){schedule(.8,()=>toRead(req));return;}
+    const a=ups[rr.read++%ups.length],ep=a.epoch;
+    move(rdWay,a,.2,'r',()=>{
+      if(a.epoch!==ep||a.state!=='up'){req.retry=true;stats.retries+=req.dot;schedule(1,()=>httpReq(req));return;}
+      move(a,nosql,.28,'r',()=>{A_.reads+=req.dot;});
+    });
+  });
+}
+function toBox(req){
+  const pool=boxes.filter(b=>b.inPool);
+  if(!pool.length){schedule(.8,()=>toBox(req));return;}
+  const b=pool[rr.box++%pool.length];
+  move(lb,b,.24,cls(req),()=>{
+    if(b.state!=='up'){stats.retries+=req.dot;req.retry=true;schedule(1,()=>httpReq(req));return;}
+    const k=req.prov,P=PV[k],ps=PS[k],isBet=req.kind==='bet',d=req.dot;
+    if(req.dup&&cfg.cache){stats.cache+=d;ps.cache+=d;move(b,provNodes[k],.3,'ack');return;}
+    if(req.dup)req.committed=true;
+    A_.wIn+=d;if(isBet){A_.betIn+=d;ps.cnt+=d;}
+    if(isBet&&!req.retry&&ps.rate>P.Q&&Math.random()>P.Q/ps.rate){stats.quota+=d;ps.shedQ+=d;A_.quota+=d;move(b,lb,.24,'shed');flash(b,'w');return;}
+    const cap=boxCap();let ok=true;
+    if(isBet&&rate.wIn>cap)ok=Math.random()>Math.min(1,(rate.wIn-cap)/Math.max(rate.betIn,1));
+    if(ok&&isBet){const age=cfg.fair?headAge(iq[req.shard].bet[k]):betAgeS(req.shard);if(age>ADMIT_AGE)ok=Math.random()<.3;}
+    if(!ok){stats.shed+=d;ps.shedC+=d;A_.shed+=d;A_.lost+=d;move(b,lb,.24,'shed');flash(b,'w');return;}
+    move(b,iqN,.24,cls(req),()=>{if(req.at===undefined)req.at=t;const Q=iq[req.shard];(isBet?Q.bet[k]:Q[req.kind]).push(req);});
+  });
+}
+function requeue(req){stats.retries+=req.dot;req.retry=true;schedule(1,()=>{const Q=iq[req.shard];(req.kind==='bet'?Q.bet[req.prov]:Q[req.kind]).unshift(req);});}
+function popNext(Q){
+  if(Q.rb.length)return Q.rb.shift();
+  if(Q.win.length)return Q.win.shift();
+  const act=[];Q.bet.forEach((L,k)=>{if(L.length)act.push(k);else Q.drr[k]=0;});
+  if(!act.length)return null;
+  let k;
+  if(cfg.fair){const W=act.reduce((a,j)=>a+PV[j].Q,0);act.forEach(j=>Q.drr[j]+=PV[j].Q/W);k=act.reduce((b,j)=>Q.drr[j]>Q.drr[b]?j:b,act[0]);Q.drr[k]-=1;}
+  else k=act.reduce((b,j)=>Q.bet[j][0].at<Q.bet[b][0].at?j:b,act[0]);
+  return Q.bet[k].shift();
+}
+const headDot=Q=>{const r=Q.rb[0]||Q.win[0]||(Q.bet.find(L=>L.length)||[])[0];return r?r.dot:DOT;};
+function pullTick(dt){
+  shards.forEach(s=>{const c=shardNodeCap(s);s.acc=c>0?Math.min(s.acc+c*dt,c*.25+DOTS[4]):0;});
+  const cw=U.w*capW();
+  writes.forEach(a=>{
+    if(a.state!=='up'||!a.inPool){a.acc=0;return;}
+    a.acc=Math.min(a.acc+cw*dt,cw*.25+DOTS[4]);
+    let guard=0;
+    while(guard++<40){
+      let pick=-1;
+      for(let k=0;k<NSH;k++){const s=(rr.part+k)%NSH;if(qLen(s)&&shards[s].acc>=headDot(iq[s])&&a.acc>=headDot(iq[s])){pick=s;break;}}
+      if(pick<0)break;
+      rr.part=(pick+1)%NSH;
+      const req=popNext(iq[pick]);if(!req)continue;
+      shards[pick].acc-=req.dot;a.acc-=req.dot;
+      if(req.kind==='bet'&&t-req.at>TTL){stats.expired+=req.dot;PS[req.prov].expired+=req.dot;A_.exp+=req.dot;A_.lost+=req.dot;continue;}
+      if(t-req.at<SYNC_AGE)A_.sync+=req.dot;
+      const ep=a.epoch;
+      move(iqN,a,.22,cls(req),()=>{if(a.epoch!==ep||a.state!=='up')return requeue(req);doWrite(req,a,ep);});
+    }
+  });
+}
+function expireSweep(){iq.forEach(Q=>Q.bet.forEach((L,k)=>{while(L.length&&t-L[0].at>TTL){const r=L.shift();stats.expired+=r.dot;PS[k].expired+=r.dot;A_.exp+=r.dot;A_.lost+=r.dot;}}));}
+function doWrite(req,a,ep){
+  const sh=shards[req.shard];
+  if(!primUp(sh))return requeue(req);
+  move(a,sh,.28,cls(req),()=>{
+    if(!primUp(sh))return requeue(req);
+    if(req.committed){stats.replays+=req.dot;flash(sh,'w');}
+    else{req.committed=true;stats.commits+=req.dot;stats.ledger+=req.dot;outbox.pending+=req.dot;sh.cnt+=req.dot;A_.proc+=req.dot;}
+    move(sh,a,.22,'ack',()=>{if(a.epoch!==ep)requeue(req);});
+  });
+}
+
+// Autoscalers com histerese (sobe com 85% de uso, só desce quando sobraria folga abaixo de 60%)
+function scalePool(pool,loadV,nodeCap,upT,downT,minN,maxN,provT,name,unitsN,canDown,stepMax){
+  pool.forEach(x=>{if(x.idx>=maxN&&(x.state==='up'||x.state==='prov')){x.state='drain';x.inPool=false;schedule(1,()=>{if(x.state==='drain')x.state='off';});}});
+  const active=pool.filter(x=>x.idx<maxN&&(x.state==='up'||x.state==='prov'));
+  const desUp=clamp(Math.ceil(loadV/(nodeCap*upT)),minN,maxN),desDown=clamp(Math.ceil(loadV/(nodeCap*downT)),minN,maxN);
+  const lbl=n=>unitsN>1?`${n*unitsN} (${n} grupos)`:String(n);
+  if(active.length<desUp){
+    const add=pool.filter(x=>x.idx<maxN&&x.state==='off').slice(0,Math.min(desUp-active.length,stepMax));
+    if(add.length)log('info',`Autoscaler: ${name} ${lbl(active.length)} → ${lbl(active.length+add.length)}.`);
+    add.forEach(x=>{x.state='prov';x.inPool=false;x.epoch++;schedule(provT,()=>{if(x.state==='prov'){x.state='up';x.inPool=true;x.backoff=0;}});});
+    pool.lowFor=0;
+  }else if(active.length>Math.max(desUp,desDown)&&canDown&&!pool.some(x=>x.state==='prov')){
+    pool.lowFor=(pool.lowFor||0)+1;
+    if(pool.lowFor>=8){pool.lowFor=0;const x=[...pool].reverse().find(y=>y.state==='up'&&!y.busy&&!(y.claimed>0));
+      if(x){x.state='drain';x.inPool=false;log('info',`Autoscaler: drenando ${x.label} (${name} ${lbl(active.length)} → ${lbl(active.length-1)}).`);schedule(2,()=>{if(x.state==='drain')x.state='off';});}}
+  }else pool.lowFor=0;
+}
+const want={box:2,w:2,r:2};
+function autoscale(){
+  const age=maxAge(),backlog=qTotal(),reat=cfg.policy==='reativo';
+  const wLoad=reat?rate.wIn:rate.wIn+backlog/3;
+  let minB=2,minW=2;
+  if(scen&&scen.pre&&scen.m>=scen.sc.pre.from&&scen.m<scen.sc.pre.to){minB=scen.preB;minW=scen.preW;}
+  const pt=cfg.warm?.8:null;
+  scalePool(boxes,rate.wIn,U.b*BOX_CAP,.8,.55,Math.min(minB,maxNodes.b()),maxNodes.b(),pt||4,'boxes',U.b,true,reat?1:99);
+  scalePool(writes,wLoad,U.w*capW(),.85,.6,Math.min(minW,maxNodes.w()),maxNodes.w(),pt||3,'instâncias de escrita',U.w,age<.3,reat?2:99);
+  scalePool(reads,rate.rIn,U.r*CAP_R,.7,.45,Math.min(2,maxNodes.r()),maxNodes.r(),pt||3,'instâncias de leitura',U.r,true,99);
+  scalePool(pubs,rate.proc+outbox.pending/2,pubNodeCap(),.7,.4,2,4,1.5,'publishers',U.w,outbox.pending<pubNodeCap(),99);
+  scalePool(cons,queue.length*1000,8000,.7,.3,2,3,1.5,'consumers',1,queue.length<3,99);
+  want.box=boxes.filter(x=>x.state==='up'||x.state==='prov').length;want.w=writes.filter(x=>x.state==='up'||x.state==='prov').length;want.r=reads.filter(x=>x.state==='up'||x.state==='prov').length;
+}
+
+// Ações de falha
+function crashBox(){
+  const ups=boxes.filter(b=>b.state==='up');
+  if(ups.length<=1){log('warn','Só um grupo de boxes está de pé. Restaure antes de derrubar outro.');return;}
+  const b=ups[Math.floor(Math.random()*ups.length)];
+  b.state='down';
+  log('crit',`${b.label}${U.b>1?` (grupo de ${U.b} boxes)`:''} caiu. Nada estava guardado nele; o que estava em voo volta do provedor com a mesma Idempotency-Key.`);
+  schedule(1.5,()=>{b.inPool=false;log('info',`Load balancer tirou ${b.label} do pool.`);});
+  schedule(5,()=>{if(b.state==='down')b.state='off';});
+}
+function crashApi(){
+  const ups=writes.filter(a=>a.state==='up');
+  if(ups.length<=1){log('warn','Só resta um grupo de escrita.');return;}
+  const a=ups[Math.floor(Math.random()*ups.length)];
+  a.state='down';a.epoch++;
+  log('crit',`Grupo de escrita ${a.label}${U.w>1?` (${U.w} instâncias)`:''} caiu. As mensagens que ele tinha puxado não foram confirmadas e voltam para a fila.`);
+  schedule(1.5,()=>{a.inPool=false;});
+  schedule(5,()=>{if(a.state==='down')a.state='off';});
+}
+function crashPrimary(){
+  const c=shards.filter(s=>primUp(s)&&!s.failover);
+  if(!c.length){log('warn','Nenhum primário saudável.');return;}
+  const s=c[Math.floor(Math.random()*c.length)];
+  s.failed++;s.failover=true;
+  const pg=perGroup(),name=pg>1?`um dos ${pg} shards do grupo ${s.i+1}`:`shard-${s.i+1}`;
+  log('crit',`Primário de ${name} caiu. Só as carteiras desse shard esperam (${pct(1/cfg.shards)} do total).`);
+  schedule(2.5,()=>{
+    if(s.repState!=='up'){log('crit',`Grupo ${s.i+1} sem réplica saudável para promover. Use Restaurar tudo.`);return;}
+    s.failed=Math.max(0,s.failed-1);s.failover=false;s.repState='down';[s.pName,s.rName]=[s.rName,s.pName];
+    log('ok',`Patroni promoveu a réplica de ${name}. Replicação síncrona: 0 commits perdidos.`);
+    schedule(8,()=>rejoin(s));
+  });
+}
+function rejoin(s){if(s.repState!=='down')return;s.repState='sync';log('info',`A réplica do grupo ${s.i+1} voltou e está reaplicando o WAL.`);schedule(3,()=>{if(s.repState==='sync'){s.repState='up';log('ok',`Réplica do grupo ${s.i+1} sincronizada.`);}});}
+function crashReplica(){
+  const c=shards.filter(s=>s.repState==='up'&&primUp(s));
+  if(!c.length){log('warn','Nenhuma réplica saudável para derrubar.');return;}
+  const s=c[0];s.repState='down';
+  log('crit',`Uma réplica do grupo ${s.i+1} caiu. Leituras de tela seguem no Redis e no DynamoDB; só a reconciliação desse shard espera.`);
+  schedule(10,()=>rejoin(s));
+}
+function toggleSqs(){
+  if(sqsDown)return;sqsDown=true;sqsOut.state='down';
+  log('crit','SQS de eventos indisponível. Eventos seguem gravados na Outbox; Redis e DynamoDB começam a atrasar.');
+  schedule(14,()=>{if(sqsDown){sqsDown=false;sqsOut.state='up';log('ok','SQS voltou. Publishers drenam a Outbox e a leitura alcança.');}});
+}
+function crashWorkers(){
+  const ps=pubs.filter(p=>p.state==='up').sort((a,b)=>b.claimed-a.claimed)[0];
+  if(ps){
+    const lost=ps.claimed;ps.state='down';ps.epoch++;ps.claimed=0;
+    log('crit',`${ps.label} caiu segurando o lease de ${fmt(lost)} eventos.`);
+    schedule(3,()=>{outbox.pending+=lost;log('ok',`Lease de ${ps.label} expirou. Os eventos voltam a PENDING e outro publisher os pega com SKIP LOCKED.`);});
+    schedule(6,()=>{if(ps.state==='down')ps.state='off';});
+  }
+  const cs=cons.filter(c=>c.state==='up').sort((a,b)=>(b.busy?1:0)-(a.busy?1:0))[0];
+  if(cs){
+    cs.state='down';cs.epoch++;
+    const m=cs.msg;cs.msg=null;cs.busy=false;
+    if(m&&!m.acked){log('crit',`${cs.label} caiu com uma mensagem sem ACK. Ela volta à fila após o visibility timeout.`);visReturn(m,4);}
+    else log('crit',`${cs.label} caiu.`);
+    schedule(6,()=>{if(cs.state==='down')cs.state='off';});
+  }
+}
+function restore(){
+  [boxes,writes,reads].forEach(pool=>pool.forEach(x=>{if(x.state==='down'){x.state='off';x.inPool=false;}}));
+  shards.forEach(s=>{if(s.failed){s.failed=0;s.failover=false;s.repState='down';}if(s.repState==='down')rejoin(s);});
+  if(sqsDown){sqsDown=false;sqsOut.state='up';}
+  pubs.forEach(p=>{if(p.state==='down')p.state='off';});
+  cons.forEach(c=>{if(c.state==='down')c.state='off';});
+  log('ok','Restauração disparada. Autoscaler e Patroni recompõem os componentes.');
+}
+
+// Tráfego manual e cenários
+function rampTo(v,secs){ramp={from:rps,to:v,t0:t,dur:secs};}
+function stopScenario(silent){if(scen&&!silent)log('info',`Cenário "${scen.sc.name}" interrompido.`);scen=null;}
+function runPeak(target){
+  stopScenario();const id=++manualScen,dur=target>100000?12:8;
+  log('warn',`Pico chegando: de ${fmt(rps)} para ${fmtMil(target)} req/s em ${dur} s.`);
+  if(target>plannedPeak()*cfg.cells*1.05)log('warn',`O perfil configurado aguenta cerca de ${fmtMil(plannedPeak()*cfg.cells)} req/s. Use "${target>1e6?'Perfil 4 milhões':'Perfil 700 mil'}" para ver o pico sem recusas.`);
+  if(cfg.cells>1)log('info',`Com ${cfg.cells} células, cada uma recebe ${fmtMil(target/cfg.cells)} req/s.`);
+  rampTo(target,dur);
+  schedule(dur,()=>{if(manualScen===id&&!scen)log('warn',`${fmtMil(target)} req/s sustentados.`);});
+  schedule(dur+26,()=>{if(manualScen!==id||scen)return;log('info','Pico passando. Tráfego volta para uso baixo em 12 s.');rampTo(LOW,12);});
+}
+function lowUse(){stopScenario();manualScen++;rampTo(LOW,5);log('info','Voltando ao uso baixo.');}
+const H_LIVE=()=>({P:cfg.P/cfg.cells,spin:5,sbm:.15});
+function runScenario(id){
+  const sc=SC.find(s=>s.id===id);if(!sc)return;
+  manualScen++;ramp=null;noisyExtra=0;
+  scen={sc,t0:t,m:0,open:0,settleRate:0,settleUntil:-1,settled:new Set(),fired:new Set(),pre:false,preW:2,preB:2};
+  if(sc.pre){let pk=0;for(let m=sc.pre.from;m<=sc.pre.to;m+=.5)pk=Math.max(pk,sumW(load(H_LIVE(),sc.profile(m),-1,0,0)));
+    scen.pre=true;scen.preW=clamp(Math.ceil(pk/(U.w*capW()*.85)),2,maxNodes.w());scen.preB=clamp(Math.ceil(pk/(U.b*BOX_CAP*.8)),2,maxNodes.b());}
+  log('warn',`Cenário: ${sc.name} (${sc.when}) com ${fmtMil(cfg.P)} jogadores simultâneos${cfg.cells>1?` (${fmtMil(cfg.P/cfg.cells)} por célula)`:''}. 120 minutos comprimidos em ${Math.round(120/SPEED)} s.${scen.pre?` Pré-escala: ${scen.preW*U.w} instâncias de escrita e ${scen.preB*U.b} boxes antes do evento.`:''}`);
+  $('scSel').value=id;$('sStory').textContent=sc.story;
+}
+function endScenario(){log('ok',`Cenário "${scen.sc.name}" terminou. Tráfego volta ao uso baixo.`);rps=Math.round(gTot()/500)*500;scen=null;rampTo(LOW,6);}
+const sAcc=PV.map(()=>({bet:0,win:0,rb:0,read:0}));
+function spawn(k,kind,amount,dm){
+  sAcc[k][kind]+=amount;let n=0;
+  while(sAcc[k][kind]>=DOT&&n<20){sAcc[k][kind]-=DOT;n++;
+    const write=kind!=='read';
+    httpReq({dot:DOT,write,kind:write?kind:null,prov:k,shard:Math.floor(Math.random()*NSH),retry:false,committed:false,dup:dm>1&&Math.random()<(dm-1)/dm});}
+  if(sAcc[k][kind]>DOT*20)sAcc[k][kind]=0;
+}
+function generate(dt){
+  let L;
+  if(scen){
+    scen.m=(t-scen.t0)*SPEED;const m=scen.m;
+    if(m>=120){endScenario();return generate(dt);}
+    const sc=scen.sc,p=sc.profile(m);
+    for(const s of sc.settle||[])if(m>=s.at&&!scen.settled.has(s.at)){scen.settled.add(s.at);scen.settleRate=scen.open*.45/(s.dur*60);scen.settleUntil=s.at+s.dur;scen.open=0;}
+    sc.events.forEach(ev=>{if(m>=ev.m&&!scen.fired.has(ev.m)){scen.fired.add(ev.m);log('warn',`Minuto ${ev.m}: ${ev.l}.`);}});
+    L=load(H_LIVE(),p,Math.floor(m*30),sc.seed,m<scen.settleUntil?scen.settleRate:0);
+    scen.open+=L.reduce((a,d)=>a+d.sb,0)*dt*60*SPEED;
+  }else{
+    if(ramp){const u=Math.min(1,(t-ramp.t0)/ramp.dur);rps=Math.round((ramp.from+(ramp.to-ramp.from)*u)/100)*100;if(ramp&&u>=1)ramp=null;}
+    L=PV.map((pv,k)=>{const r=(rps*MANUAL_W[k]+(k===1?noisyExtra:0))/cfg.cells;return {bet:r*WF*.70,win:r*WF*.25,rb:r*WF*.05,reads:r*(1-WF),dm:1};});
+  }
+  let total=0;
+  L.forEach((d,k)=>{const dm=d.dm;spawn(k,'bet',d.bet*dm*dt,dm);spawn(k,'win',d.win*dm*dt,dm);spawn(k,'rb',d.rb*dm*dt,dm);spawn(k,'read',d.reads*dm*dt,1);
+    const all=(d.bet+d.win+d.rb+d.reads)*dm;total+=all;PS[k].all=all;});
+  curTotal=total;
+  const sl=$('rps');sl.value=Math.min(4000000,Math.round(gTot()/500)*500);$('rpsOut').textContent=`${fmt(gTot())} req/s`;
+}
+
+// Outbox → SQS → projetor → leitura (em requisições)
+function pubTick(){
+  pubs.forEach(pb=>{
+    if(pb.state!=='up'||t<pb.backoffUntil||outbox.pending<=0||!shards.some(primUp))return;
+    const n=Math.min(pubNodeCap()*.3,outbox.pending);outbox.pending-=n;pb.claimed+=n;const ep=pb.epoch;
+    const src=shards[rr.pub++%NSH];
+    const dots=Math.min(3,Math.ceil(n/DOT));
+    for(let i=0;i<dots;i++)move(src,pb,.28+i*.05,'ev');
+    schedule(.3,()=>{
+      if(pb.epoch!==ep)return;
+      if(sqsDown){pb.claimed-=n;outbox.pending+=n;pb.backoff=Math.min((pb.backoff||.4)*2,4);pb.backoffUntil=t+pb.backoff;flash(pb,'w');return;}
+      pb.claimed-=n;stats.published+=n;A_.pub+=n;projQ+=n;pb.backoff=0;move(pb,sqsOut,.28,'ev');
+    });
+  });
+}
+let projAnim=0;
+function projTick(dt){
+  const x=Math.min(projQ,projCap()*dt);projQ-=x;A_.proj+=x;
+  if(x>0&&(projAnim+=dt)>.35){projAnim=0;move(sqsOut,proj,.3,'ev',()=>move(proj,nosql,.35,'ev'));}
+}
+const projLagMs=()=>{const pu=Math.max(1,pubs.filter(p=>p.state==='up').length);return 60+(outbox.pending/(pu*pubNodeCap())+projQ/projCap())*1000;};
+
+// Entrada SQS
+let msgId=0;
+function visReturn(m,d){schedule(d,()=>queue.push(m));}
+function consTick(){
+  cons.forEach(c=>{
+    if(c.state!=='up'||c.busy||!queue.length)return;
+    const m=queue.shift();m.acked=false;c.busy=true;c.msg=m;const ep=c.epoch;
+    const end=()=>{if(c.epoch===ep){c.busy=false;c.msg=null;}};
+    move(fifo,c,.45,'msg',()=>{
+      if(c.epoch!==ep)return;
+      if(m.poison){end();stats.dlq++;log('warn',`Mensagem ${m.id} com JSON inválido: enviada para a DLQ antes do ACK.`);move(c,dlqN,.5,'dlq');return;}
+      const sh=shards[m.shard];
+      if(!primUp(sh)){end();visReturn(m,2);flash(c,'w');return;}
+      move(c,sh,.35,'msg',()=>{
+        if(!primUp(sh)){end();visReturn(m,2);return;}
+        if(m.done){stats.inboxDup+=m.dot;flash(sh,'w');}
+        else{m.done=true;stats.commits+=m.dot;stats.ledger+=m.dot;outbox.pending+=m.dot;sh.cnt+=m.dot;}
+        move(sh,c,.3,'ack',()=>{if(c.epoch!==ep)return;m.acked=true;end();move(c,fifo,.45,'ack');});
+      });
+    });
+  });
+}
+
+// Fase
+let phase='baixo';const recentTot=[];
+function computePhase(){
+  const age=maxAge();
+  const prov=[boxes,writes,reads].some(p=>p.some(x=>x.state==='prov'));
+  const drain=[boxes,writes,reads].some(p=>p.some(x=>x.state==='drain'));
+  const prev=recentTot.length?recentTot[0]:curTotal;
+  const rising=(ramp&&ramp.to>ramp.from)||curTotal>prev*1.05;
+  if(age>.3)return(rising||rate.wIn>writeCap()*.98)?'fila':'drenando';
+  if(prov)return 'escalando';
+  if(drain)return 'reduzindo';
+  if(curTotal<=3000)return 'baixo';
+  return 'estavel';
+}
+const PH_NAMES={baixo:'uso baixo',escalando:'escalando',fila:'fila segurando',estavel:'pico estável',drenando:'drenando',reduzindo:'reduzindo'};
+
+// Histórico e janelas
+const H=[];const HWIN=90;let nextHist=0;
+function sample(){
+  H.push({t,rps:gTot(),proc:(rate.proc+rate.reads)*cfg.cells,q:qTotal()*cfg.cells,w:inst(writes,U.w),b:inst(boxes,U.b),age:maxAge()});
+  while(H.length&&H[0].t<t-HWIN)H.shift();
+  recentTot.push(curTotal);while(recentTot.length>6)recentTot.shift();
+}
+
+// Loop principal
+let accS=0,nextPub=0,nextCons=0,nextScale=0,nextPref=2,nextRate=0;
+function step(dt){
+  t+=dt;
+  for(let i=timers.length-1;i>=0;i--)if(timers[i].at<=t){const f=timers[i].fn;timers.splice(i,1);f();}
+  generate(dt);
+  accS+=.6*dt;
+  while(accS>=1){accS--;const m={id:++msgId,dot:DOT,shard:Math.floor(Math.random()*NSH),poison:Math.random()<.02,done:false};move(provSqs,fifo,.35,'msg',()=>queue.push(m));}
+  pullTick(dt);projTick(dt);
+  if(t>=nextPub){nextPub=t+.3;pubTick();}
+  if(t>=nextCons){nextCons=t+.25;consTick();}
+  if(t>=nextScale){nextScale=t+1;autoscale();}
+  if(t>=nextPref){nextPref=t+3;const s=shards.find(primUp);if(s)move(pref,s,.5,'w');}
+  if(t>=nextRate){
+    const span=.5;nextRate=t+span;
+    for(const k of ['proc','reads','wIn','betIn','rIn','pub','proj'])rate[k]+=(A_[k]/span-rate[k])*.5;
+    WIN.push({wIn:A_.wIn,lost:A_.lost,sync:A_.sync,proc:A_.proc,quota:A_.quota,shed:A_.shed,exp:A_.exp,tot:curTotal*span});while(WIN.length>120)WIN.shift();
+    A_=acc0();
+    PS.forEach(p=>{p.rate+=(p.cnt/span-p.rate)*.5;p.cnt=0;});
+    shards.forEach(s=>{s.rate+=(s.cnt/span-s.rate)*.5;s.cnt=0;});
+    expireSweep();
+    const need=curTotal/110,nd=DOTS.find(d=>d>=need)||DOTS[4];
+    if(nd!==DOT){DOT=nd;$('dotLegend').textContent=`cada ponto ≈ ${fmt(DOT)} requisições · nó tracejado = subindo ou reserva · nó apagado = fora do perfil · ×N = grupo de N instâncias`;}
+  }
+  if(t>=nextHist){nextHist=t+.5;sample();}
+  for(let i=pks.length-1;i>=0;i--){
+    const k=pks[i],u=Math.min(1,(t-k.t0)/k.dur),e=u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
+    k.c.setAttribute('cx',k.p.x+(k.q.x-k.p.x)*e);k.c.setAttribute('cy',k.p.y+(k.q.y-k.p.y)*e);
+    if(u>=1){k.c.remove();pks.splice(i,1);k.done&&k.done();}
+  }
+  const wu=writeCap()||1,util=rate.wIn/wu;
+  lat+=(Math.min(25+30*Math.min(util,1)+maxAge()*1000,12000)-lat)*Math.min(1,dt*2);
+  const ru=Math.max(1,readCap()),rutil=rate.rIn/ru;
+  latR+=((8+10*Math.min(rutil,1)+(rutil>1?(rutil-1)*400:0))-latR)*Math.min(1,dt*2);
+}
+
+// Render do diagrama
+const SUB={prov:'subindo…',drain:'drenando',down:'fora do ar',off:'reserva'};
+const XS={prov:'…',drain:'↓',down:'✕',off:''};
+function setNode(n,c,sub){
+  const f=t<n.flashUntil?(n.flashKind==='w'?' flashw':' flash'):'';
+  const k='node '+c+f;if(n.cls!==k){n.g.setAttribute('class',k);n.cls=k;}
+  if(n.compact){const txt=sub?`${n.label} · ${sub}`:n.label;if(n.l.textContent!==txt)n.l.textContent=txt;}
+  else if(sub!==undefined&&n.s.textContent!==sub)n.s.textContent=sub;
+}
+function poolNode(n,sub,max,units){
+  const xs=n.compact==='xs';
+  if(n.idx>=max&&n.state==='off')return setNode(n,'na','');
+  const tag=units>1?`×${units}`:'';
+  if(n.state==='up'&&n.inPool)setNode(n,'up',xs?(tag||sub):(tag?tag+' · ':'')+sub);
+  else if(n.state==='up')setNode(n,'down',xs?'✕':'health check…');
+  else setNode(n,n.state,xs?XS[n.state]:SUB[n.state]);
+}
+function setTxt(id,txt,c){const e=$(id);if(e.textContent!==txt)e.textContent=txt;if(c!==undefined&&e.className!==c)e.className=c;}
+function render(){
+  const upB=upIn(boxes).length||1,upW=upIn(writes).length||1,upR=upIn(reads).length||1;
+  provNodes.forEach((n,k)=>{const over=PS[k].rate>PV[k].Q;setNode(n,over?'backoff':'up',fmtK(PS[k].all||0)+(over?' · cota':''));});
+  setNode(provSqs,'up');setNode(pref,'up');
+  setNode(lb,'up',`${fmtK(curTotal)} req/s`);
+  const ct=cfg.cells>1?`célula 1 de ${cfg.cells}${cellsDown?` · ${cellsDown} fora`:''}`:'célula única';if(cellTxt.textContent!==ct)cellTxt.textContent=ct;
+  boxes.forEach(b=>poolNode(b,`${fmtK(rate.wIn/upB)}/s`,maxNodes.b(),U.b));
+  writes.forEach(a=>poolNode(a,fmtK(rate.proc/upW),maxNodes.w(),U.w));
+  reads.forEach(a=>poolNode(a,`${fmtK(rate.reads/upR)}/s`,maxNodes.r(),U.r));
+  const age=maxAge(),tot=qTotal();
+  const qc=age>ADMIT_AGE?'crit':age>.5?'warn':'';
+  qRect.setAttribute('class','qbox '+qc);
+  qTitle.textContent=cfg.fair?'Fila justa':'Fila';
+  qSub.textContent=tot?`${fmtK(tot)} · ${sec(age)}`:'vazia';
+  bars.forEach((b,s)=>{const a=partAge(s),v=qReq(s),h=Math.min(BH,BH*Math.sqrt(v/Math.max(30000,curTotal*.5)));
+    b.setAttribute('y',BT+BH-h);b.setAttribute('height',h);b.setAttribute('class','bar '+(a>ADMIT_AGE?'crit':a>.5?'warn':''));});
+  const pg=perGroup();
+  pgLabel.textContent=`Postgres · ${cfg.shards} shards`;
+  shards.forEach(s=>{
+    const c=s.failover?'down':s.repState!=='up'?'backoff':'primary';
+    const ttl=pg>1?`shards ${s.i*pg+1}–${(s.i+1)*pg} · lógicos ${s.i*64}–${s.i*64+63}`:`shard-${s.i+1} · lógicos ${s.i*64}–${s.i*64+63}`;
+    if(s.l.textContent!==ttl)s.l.textContent=ttl;
+    setNode(s,c,s.failover?(pg>1?`1 de ${pg} em failover · ${fmtK(s.rate)} tx/s`:'primário fora · failover…'):`${pg>1?pg+' primários':'primário '+s.pName} · ${fmtK(s.rate)} tx/s`);
+    const r=s.repState==='up'?(pg>1?`${pg} réplicas · WAL ok`:`réplica ${s.rName} · WAL ok`):s.repState==='sync'?'réplica reaplicando WAL':'réplica fora';
+    if(s.s2.textContent!==r)s.s2.textContent=r;
+  });
+  const lagv=projLagMs();
+  setNode(nosql,lagv>1000?'backoff':'up',`atraso ≈ ${lagv>=1000?sec(lagv/1000):Math.round(lagv)+' ms'}`);
+  setNode(proj,sqsDown?'backoff':'up',`${fmtK(projQ)} na fila`);
+  pubs.forEach(p=>{const bo=p.state==='up'&&t<p.backoffUntil;setNode(p,bo?'backoff':p.state,p.state==='up'?(bo?`backoff ${p.backoff.toFixed(1)}s`:`lease ${fmtK(p.claimed)}`):SUB[p.state]);});
+  cons.forEach(c=>setNode(c,c.state,c.state==='up'?(c.busy?'processando':'long poll'):SUB[c.state]));
+  setNode(sqsOut,sqsDown?'down':'up',sqsDown?'indisponível':`${fmtK(stats.published)} publ.`);
+  setNode(fifo,'up',`${queue.length} na fila`);
+  setNode(dlqN,stats.dlq?'backoff':'up',`${stats.dlq}`);
+  const ph=computePhase();
+  if(ph!==phase){phase=ph;document.querySelectorAll('.ph').forEach(e=>e.removeAttribute('aria-current'));$('ph-'+ph).setAttribute('aria-current','step');}
+  setTxt('mPhase',PH_NAMES[ph],ph==='fila'||ph==='escalando'?'warn':'ok');
+  setTxt('mRps',`${fmt(gTot())}/s`);
+  setTxt('mCells',`${cfg.cells-cellsDown} de ${cfg.cells} · ${fmtK(curTotal)}/s cada`,cellsDown?'warn':'ok');
+  setTxt('mLat',lat>=1000?sec(lat/1000):`${Math.round(lat)} ms`,lat>1000?'crit':lat>300?'warn':'ok');
+  setTxt('mLatR',`${Math.round(latR)} ms`,latR>200?'warn':'ok');
+  const cnt=(p,u,max)=>`${p.filter(x=>x.state==='up').length*u}${p.some(x=>x.state==='prov')?' +'+p.filter(x=>x.state==='prov').length*u:''} de ${max}`;
+  setTxt('mBox',cnt(boxes,U.b,cfg.maxB));setTxt('mW',cnt(writes,U.w,cfg.maxW));setTxt('mR',cnt(reads,U.r,cfg.maxR));
+  setTxt('mS',`${cfg.shards} · ${fmtMil(dbCap())} escritas/s`);
+  setTxt('mIq',fmt(tot),age>ADMIT_AGE?'crit':age>.5?'warn':'');
+  setTxt('mAge',sec(age),age>ADMIT_AGE?'crit':age>1?'warn':'ok');
+  const ar=laneAge('rb'),aw=laneAge('win'),ab=laneAge('bet');
+  setTxt('mPri',`${ar.toFixed(1).replace('.',',')} · ${aw.toFixed(1).replace('.',',')} · ${ab.toFixed(1).replace('.',',')} s`,ab>1?'warn':'ok');
+  setTxt('mQuota',fmt(stats.quota),stats.quota?'warn':'');
+  setTxt('mShed',`${fmt(stats.shed)} · ${fmt(stats.expired)}`,stats.shed||stats.expired?'warn':'');
+  setTxt('mCache',fmt(stats.cache),stats.cache?'ok':'');
+  setTxt('mCommit',fmt(stats.commits));
+  const okL=stats.ledger===stats.commits;setTxt('mLedger',okL?'confere':'divergente',okL?'ok':'crit');
+  setTxt('mReplay',fmt(stats.replays));
+  setTxt('mInbox',fmt(stats.inboxDup));
+  setTxt('mOutbox',fmt(outbox.pending),outbox.pending>pubNodeCap()?'warn':'');
+  setTxt('mProj',lagv>=1000?sec(lagv/1000):`${Math.round(lagv)} ms`,lagv>1000?'warn':'ok');
+  setTxt('mFifo',`${queue.length} · ${stats.dlq}`,stats.dlq?'warn':'');
+}
+
+// Painel de métricas, provedores, cenário
+const sumWin=k=>WIN.reduce((a,w)=>a+w[k],0);
+function satCell(u){const c=u>.95?'crit':u>.8?'warn':'';return `<div class="sat"><i><u class="${c}" style="width:${Math.min(100,u*100).toFixed(0)}%"></u></i><b>${pct(u)}</b></div>`;}
+const redisOps=()=>rate.rIn+rate.wIn*2+rate.proc;
+const redisNodes=()=>Math.max(3,Math.ceil(redisOps()/(REDIS_NODE*.8)));
+const lbNodes=()=>Math.max(2,Math.ceil(curTotal/(LB_NODE*.8)));
+function renderSide(){
+  // grupos de provedores
+  $('pvLive').innerHTML=PV.map((pv,k)=>{const P=PS[k],u=P.rate/pv.Q,w=provAge(k),lost=P.shedQ+P.shedC;
+    return `<tr><td><b>${pv.name}</b> <span class="hint">${pv.type}${pv.note?' · '+pv.note:''}</span></td><td class="num">${fmt(pv.n)}</td><td class="num">${fmt(P.all||0)}</td>
+      <td class="num ${u>1?'crit':u>.8?'warn':''}">${pct(u)}</td><td class="num ${w>1?'warn':''}">${sec(w)}</td>
+      <td class="num ${lost?'warn':''}">${fmt(lost)}</td><td class="num ${P.expired?'crit':''}">${fmt(P.expired)}</td><td class="num">${fmt(P.cache)}</td></tr>`;}).join('');
+  // cenário
+  if(scen){
+    const m=scen.m,nx=scen.sc.events.find(e=>e.m>m);
+    $('sName').textContent=`${scen.sc.name} · ${scen.sc.when}`;
+    $('sProg').style.width=Math.min(100,m/120*100)+'%';
+    $('sKv').innerHTML=`<span>minuto <b>${Math.floor(m)}</b> de 120</span><span>tráfego <b>${fmt(curTotal)}/s</b></span><span>jogadores <b>${fmtMil(cfg.P)}</b></span>${nx?`<span>próximo: <b>${nx.l}</b> no minuto ${nx.m}</span>`:''}${scen.pre?`<span>pré-escala <b>${scen.preW*U.w} esc. · ${scen.preB*U.b} box</b></span>`:''}`;
+  }else{
+    $('sName').textContent='Modo manual';$('sProg').style.width='0';
+    $('sKv').innerHTML=`<span>tráfego <b>${fmt(curTotal)}/s</b></span><span>Use o controle de tráfego ou escolha um cenário acima.</span>`;
+  }
+  // SLO (janela de 60 s)
+  const arr=sumWin('wIn'),lost=sumWin('lost'),proc=sumWin('proc'),sync=sumWin('sync');
+  const cellAv=(cfg.cells-cellsDown)/cfg.cells,avail=(arr>0?1-lost/arr:1)*cellAv,budget=(1-avail)/.001,syncR=proc>0?Math.min(1,sync/proc):1;
+  const age=maxAge(),p50=12+10*Math.min(1,rate.wIn/(writeCap()||1))+age*500,p95=lat,p99=lat*1.6+age*1500;
+  const ms=v=>v>=1000?sec(v/1000):Math.round(v)+' ms';
+  const k=(l,v,c,s)=>`<div class="kpi"><span>${l}</span><b class="${c}">${v}</b><small>${s}</small></div>`;
+  $('sloGrid').innerHTML=[
+    k('Disponibilidade de escrita',pct1(avail),avail>=.999?'ok':avail>=.99?'warn':'crit','meta 99,9% · últimos 60 s'),
+    k('Orçamento de erro usado',pct(Math.min(budget,9.99)),budget<=.5?'ok':budget<=1?'warn':'crit','de 0,1% permitido'),
+    k('Respostas na hora',pct(syncR),syncR>=.97?'ok':syncR>=.8?'warn':'crit','espera abaixo de 300 ms'),
+    k('Escrita p50 · p95 · p99',`${Math.round(p50)} · ${ms(p95)}`,p95>1000?'crit':p95>300?'warn':'ok',`p99 ${ms(p99)}`),
+    k('Plataforma',`${fmtMil(gTot())}/s`,cellsDown?'warn':'ok',`${cfg.cells-cellsDown} de ${cfg.cells} células · leitura p95 ${ms(latR)}`),
+    k('Saldo × Ledger',stats.ledger===stats.commits?'confere':'divergente',stats.ledger===stats.commits?'ok':'crit',`${fmtMil(stats.commits)} transações`),
+  ].join('');
+  // camadas
+  const w60=x=>sumWin(x)/60;
+  const upB=inst(boxes,U.b),upW=inst(writes,U.w),upR=inst(reads,U.r),upP=inst(pubs,U.w);
+  const pubsCap=pubs.filter(p=>p.state==='up').length*pubNodeCap();
+  const platCap=plannedPeak()*(cfg.cells-cellsDown);
+  const rows=[
+    ['Plataforma (todas as células)',`${cfg.cells-cellsDown} / ${cfg.cells} células`,`${fmtK(gTot())}/s`,`${fmtK(platCap)}/s`,gTot()/Math.max(1,platCap),cellsDown?`${pct(cellsDown/cfg.cells)} das carteiras fora`:'0',`p95 ${ms(lat)}`],
+    ['Load balancer',`${lbNodes()} nós`,`${fmtK(curTotal)}/s`,`${fmtK(lbNodes()*LB_NODE)}/s`,curTotal/(lbNodes()*LB_NODE),`${fmtK(w60('quota'))}/s cota`,'~1 ms'],
+    ['Boxes de ingestão',`${upB} / ${cfg.maxB}`,`${fmtK(rate.wIn)}/s`,`${fmtK(boxCap())}/s`,rate.wIn/Math.max(1,boxCap()),`${fmtK(w60('shed'))}/s 429`,'~2 ms'],
+    ['Fila de escrita','–',`${fmtK(tot0())} msgs`,'4 s de espera',age/ADMIT_AGE,`${fmtK(w60('exp'))}/s expiram`,sec(age)],
+    ['Instâncias de escrita',`${upW} / ${cfg.maxW}`,`${fmtK(rate.proc)}/s`,`${fmtK(writeCap())}/s`,rate.wIn/Math.max(1,writeCap()),`${fmt(stats.retries)} retries`,`p95 ${ms(lat)}`],
+    ['Shards PostgreSQL',`${cfg.shards-shards.reduce((a,s)=>a+s.failed,0)} / ${cfg.shards}`,`${fmtK(rate.proc)}/s`,`${fmtK(dbCap())}/s`,rate.proc/Math.max(1,dbCap()),shards.some(s=>s.failover)?'failover':'0','commit < 10 ms'],
+    ['Instâncias de leitura',`${upR} / ${cfg.maxR}`,`${fmtK(rate.reads)}/s`,`${fmtK(readCap())}/s`,rate.rIn/Math.max(1,readCap()),'0',`p95 ${ms(latR)}`],
+    ['Redis (cota, cache, saldo)',`${redisNodes()} nós`,`${fmtK(redisOps())} ops/s`,`${fmtK(redisNodes()*REDIS_NODE)} ops/s`,redisOps()/(redisNodes()*REDIS_NODE),`${fmtK(stats.cache)} do cache`,'< 1 ms'],
+    ['Outbox → SQS',`${upP} pub.`,`${fmtK(rate.pub)}/s`,`${fmtK(pubsCap)}/s`,rate.proc/Math.max(1,pubsCap),`${stats.dlq} na DLQ`,`${fmtK(outbox.pending)} pendentes`],
+    ['Projetor (Redis + DynamoDB)','–',`${fmtK(rate.proj)}/s`,`${fmtK(projCap())}/s`,rate.pub/Math.max(1,projCap()),'0',`atraso ${ms(projLagMs())}`],
+  ];
+  $('layerBody').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num">${r[2]}</td><td class="num">${r[3]}</td><td>${satCell(r[4])}</td><td class="num">${r[5]}</td><td class="num">${r[6]}</td></tr>`).join('');
+  // provedores
+  const over=PV.reduce((a,p,k)=>a+(PS[k].rate>p.Q?p.n:0),0),waiting=PV.reduce((a,p,k)=>a+(provAge(k)>1?p.n:0),0);
+  const top=PV.map((p,k)=>({p,v:PS[k].all||0})).sort((a,b)=>b.v-a.v).slice(0,3);
+  $('provKv').innerHTML=`<span>ativos <b>${fmt(NPROV)}</b></span><span>tráfego total <b>${fmtMil(gTot())}/s</b></span><span>acima da cota <b>${fmt(over)}</b></span><span>com BET esperando &gt; 1 s <b>${fmt(waiting)}</b></span><span>429 por cota <b>${fmtMil(stats.quota)}</b></span>`;
+  $('provTop').textContent='Maior tráfego agora: '+top.map(x=>`${x.p.name} ${fmtK(x.v)}/s`).join(' · ')+'. Cota por provedor: '+PV.map(p=>`${p.short} ${fmtK(p.q)}`).join(' · ')+' req/s.';
+  // custo
+  const c={box:upB*.10,w:upW*.20,r:upR*.10,db:cfg.shards*2.0,redis:redisNodes()*.5,pub:upP*.10,lb:lbNodes()*.05};
+  const cellCost=Object.values(c).reduce((a,b)=>a+b,0),total=cellCost*cfg.cells,perM=gTot()>0?total/(gTot()*3600/1e6):0;
+  $('costNow').textContent=`${money(total)}/h`+(cfg.cells>1?` · ${cfg.cells} células de ${money(cellCost)}`:'');
+  $('costKv').innerHTML=`<span>boxes <b>${money(c.box)}</b></span><span>escrita <b>${money(c.w)}</b></span><span>leitura <b>${money(c.r)}</b></span><span>PostgreSQL <b>${money(c.db)}</b></span><span>Redis <b>${money(c.redis)}</b></span><span>publishers <b>${money(c.pub)}</b></span><span>por milhão de req. <b>${money(perM)}</b></span>`;
+}
+const tot0=()=>qTotal();
+
+// Gráfico
+const ch=$('chart'),tip=$('tip'),plot=$('plot');
+const CL=56,CR=930,STR=[{y0:18,y1:96,t:'req/s'},{y0:124,y1:170,t:'fila (mensagens)'},{y0:198,y1:244,t:'boxes e instâncias de escrita'}];
+const xOf=st=>CL+(st-(t-HWIN))/HWIN*(CR-CL);
+function niceC(v){const s=[1,2,2.5,5,10];const p=Math.pow(10,Math.floor(Math.log10(Math.max(v,1))));for(const k of s)if(k*p>=v)return k*p;return 10*p;}
+let xh=null;
+function drawChart(){
+  if(H.length<2)return;
+  ch.innerHTML='';const g=el('g',{},ch);
+  const maxR=niceC(Math.max(35000,...H.map(h=>Math.max(h.rps,h.proc)))),yReq=v=>STR[0].y1-(v/maxR)*(STR[0].y1-STR[0].y0);
+  const qMax=Math.max(20000,niceC(Math.max(...H.map(h=>h.q)))),yQ=v=>STR[1].y1-(Math.min(v,qMax)/qMax)*(STR[1].y1-STR[1].y0);
+  const iMax=niceC(Math.max(8,cfg.maxW,cfg.maxB)),yI=v=>STR[2].y1-(v/iMax)*(STR[2].y1-STR[2].y0);
+  STR.forEach(s=>{el('text',{x:CL,y:s.y0-6,class:'strip-t'},g).textContent=s.t;el('line',{x1:CL,x2:CR,y1:s.y1,y2:s.y1,class:'grid'},g);el('text',{x:CL-6,y:s.y1+3,'text-anchor':'end',class:'axis'},g).textContent='0';});
+  const tick=(y,txt)=>{el('line',{x1:CL,x2:CR,y1:y,y2:y,class:'grid','stroke-dasharray':'2 4'},g);el('text',{x:CL-6,y:y+3,'text-anchor':'end',class:'axis'},g).textContent=txt;};
+  [maxR/2,maxR].forEach(v=>tick(yReq(v),fmtK(v)));tick(yQ(qMax),fmtK(qMax));[iMax/2,iMax].forEach(v=>tick(yI(v),v));
+  ['-90 s','-60 s','-30 s','agora'].forEach((l,i)=>{el('text',{x:CL+(CR-CL)*i/3,y:258,'text-anchor':i===0?'start':i===3?'end':'middle',class:'axis'},g).textContent=l;});
+  const path=(fn,stp)=>H.map((h,i)=>{const x=xOf(h.t).toFixed(1),y=fn(h).toFixed(1);return i?(stp?`H${x}V${y}`:`L${x},${y}`):`M${x},${y}`;}).join('');
+  el('path',{d:path(h=>yReq(h.rps)),class:'ln in'},g);el('path',{d:path(h=>yReq(h.proc)),class:'ln proc'},g);
+  const ql=path(h=>yQ(h.q));el('path',{d:ql+`L${xOf(H[H.length-1].t).toFixed(1)},${STR[1].y1}L${xOf(H[0].t).toFixed(1)},${STR[1].y1}Z`,class:'ar'},g);el('path',{d:ql,class:'ar-ln'},g);
+  el('path',{d:path(h=>yI(h.b),true),class:'ln box'},g);el('path',{d:path(h=>yI(h.w),true),class:'ln proc'},g);
+  const L=H[H.length-1],end=(y,txt)=>el('text',{x:CR+8,y:y+4,class:'endlbl'},g).textContent=txt;
+  let yi=yReq(L.rps),yp=yReq(L.proc);if(Math.abs(yi-yp)<12){if(yi<=yp)yp=yi+12;else yi=yp+12;}end(yi,fmtK(L.rps));end(yp,fmtK(L.proc));
+  end(yQ(L.q),fmtK(L.q));
+  let yb=yI(L.b),yw=yI(L.w);if(Math.abs(yb-yw)<12){if(yw<=yb)yb=yw+12;else yw=yb+12;}end(yb,`${L.b} box`);end(yw,`${L.w} esc.`);
+  xh=el('line',{class:'xh',y1:10,y2:248,x1:-10,x2:-10},ch);
+}
+function hover(ev){
+  if(H.length<2||!xh)return;
+  const r=ch.getBoundingClientRect();const vx=(ev.clientX-r.left)/r.width*1000;
+  if(vx<CL||vx>CR){hideTip();return;}
+  const st=(t-HWIN)+(vx-CL)/(CR-CL)*HWIN;
+  let best=H[0];for(const h of H)if(Math.abs(h.t-st)<Math.abs(best.t-st))best=h;
+  const x=xOf(best.t);xh.setAttribute('x1',x);xh.setAttribute('x2',x);
+  tip.innerHTML=`<span class="tt">${Math.round(best.t-t)} s</span>`+
+    [['Chegando',fmt(best.rps)+'/s'],['Processando',fmt(best.proc)+'/s'],['Fila',fmt(best.q)],['Idade da fila',sec(best.age)],['Boxes',best.b],['Instâncias de escrita',best.w]]
+    .map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join('');
+  tip.hidden=false;
+  const pr=plot.getBoundingClientRect();let left=ev.clientX-pr.left+plot.scrollLeft+14;
+  if(left+200>plot.scrollWidth)left-=228;
+  tip.style.left=left+'px';tip.style.top='8px';
+}
+function hideTip(){tip.hidden=true;if(xh){xh.setAttribute('x1',-10);xh.setAttribute('x2',-10);}}
+ch.addEventListener('pointermove',hover);ch.addEventListener('pointerleave',hideTip);
+
+// ================= Análise com tempos reais =================
+const A={provW:60,provB:45,provR:60,hpa:15,down:300,admit:4,ttl:10,sync:.3};
+const STEP=2,N=120*60/STEP;
+function fairShares(cap,demand){
+  const out=new Array(NP).fill(0);let left=cap,act=demand.map((d,k)=>k).filter(k=>demand[k]>1e-9);
+  for(let it=0;it<NP&&left>1e-9&&act.length;it++){
+    const W=act.reduce((a,k)=>a+PV[k].Q,0);let used=0;const next=[];
+    act.forEach(k=>{const give=left*PV[k].Q/W,need=demand[k]-out[k];if(need<=give){out[k]+=need;used+=need;}else{out[k]+=give;used+=give;next.push(k);}});
+    left-=used;act=next;if(used<1e-9)break;
+  }
+  return out;
+}
+function aRun(sc,h,prof,pre){
+  const cw=capW(),cs=prof.shards*shardCap(),cb=BOX_CAP,cr=CAP_R;
+  const provT={w:prof.warm?15:A.provW,b:prof.warm?15:A.provB,r:prof.warm?15:A.provR},maxK={w:prof.maxW,b:prof.maxB,r:prof.maxR};
+  const L0=load(h,sc.profile(0),-1,0,0),w0=sumW(L0),r0=L0.reduce((a,d)=>a+d.reads,0);
+  const up={w:clamp(Math.ceil(w0/(cw*.85)),2,maxK.w),b:clamp(Math.ceil(w0/(cb*.8)),2,maxK.b),r:clamp(Math.ceil(r0/(cr*.7)),2,maxK.r)};
+  let preW=2,preB=2;
+  if(pre&&sc.pre){let pk=0;for(let m=sc.pre.from;m<=sc.pre.to;m+=.5)pk=Math.max(pk,sumW(load(h,sc.profile(m),-1,0,0)));
+    preW=clamp(Math.ceil(pk/(cw*.85)),2,maxK.w);preB=clamp(Math.ceil(pk/(cb*.8)),2,maxK.b);}
+  const pend={w:[],b:[],r:[]},downT={w:0,b:0,r:0},rbL=[],winL=[],betL=PV.map(()=>[]);
+  const depth=L=>{let s=0;for(const b of L)s+=b.n;return s;};
+  const take=(L,amt)=>{let got=0;while(amt-got>1e-9&&L.length){const b=L[0],x=Math.min(b.n,amt-got);b.n-=x;got+=x;if(b.n<=1e-9)L.shift();}return got;};
+  let open=0,settleRate=0,settleUntil=-1;
+  const M={peakReq:0,maxWorst:0,syncN:0,allN:0,shedPri:0,maxW:up.w,maxB:up.b,bets:0,instSec:0,P:PV.map(()=>({maxWait:0,shedQ:0,shedC:0,expired:0,syncN:0,allN:0}))};
+  for(let i=0;i<N;i++){
+    const t=i*STEP,m=t/60,p=sc.profile(m);
+    for(const k of ['w','b','r']){const L=pend[k];while(L.length&&L[0].ready<=t){up[k]+=L[0].n;L.shift();}}
+    for(const s of sc.settle||[])if(t>=s.at*60&&t<s.at*60+STEP){settleRate=open*.45/(s.dur*60);settleUntil=t+s.dur*60;open=0;}
+    const L=load(h,p,i,sc.seed,t<settleUntil?settleRate:0);
+    let winT=0,rbT=0,readAdm=0,reqTotal=0,sportsNow=0;const betAdm=new Array(NP).fill(0);
+    L.forEach((d,k)=>{const P=M.P[k],q=PV[k].Q,de=h.cache?1:d.dm;
+      reqTotal+=(d.bet+d.reads+d.win+d.rb)*d.dm;sportsNow+=d.sb;M.bets+=d.bet*d.dm*STEP;
+      const b=d.bet*de,r=d.reads*de,tot=b+r,f=tot>q?q/tot:1;betAdm[k]=b*f;readAdm+=r*f;P.shedQ+=tot*(1-f)*STEP;winT+=d.win*de;rbT+=d.rb*de;});
+    open+=sportsNow*STEP;
+    const sumBet=betAdm.reduce((a,b)=>a+b,0),offered=sumBet+winT+rbT,bcap=up.b*cb;
+    if(offered>bcap){const ex=offered-bcap,r=Math.min(1,ex/Math.max(sumBet,1e-9));betAdm.forEach((b,k)=>{M.P[k].shedC+=b*r*STEP;betAdm[k]-=b*r;});
+      const ex2=ex-sumBet;if(ex2>0){M.shedPri+=ex2*STEP;const f=Math.max(0,(winT+rbT-ex2)/(winT+rbT));winT*=f;rbT*=f;}}
+    const D=Math.min(up.w*cw,cs),priD=depth(rbL)+depth(winL),bd=betL.map(depth),sumBD=bd.reduce((a,b)=>a+b,0);
+    const betCap=Math.max(0,D-winT-rbT),sumNow=betAdm.reduce((a,b)=>a+b,0);
+    const shares=fairShares(betCap,betAdm.map((b,k)=>b+bd[k]/A.admit));
+    betAdm.forEach((b,k)=>{const w=D<=0?99:prof.fair?priD/D+bd[k]/Math.max(shares[k],1e-6):priD/D+sumBD/Math.max(betCap,1e-6);
+      if(w>A.admit){const room=prof.fair?shares[k]:betCap*b/Math.max(sumNow,1e-9);if(b>room){M.P[k].shedC+=(b-room)*STEP;betAdm[k]=room;}}
+      M.P[k].allN+=betAdm[k]*STEP;if(w<A.sync)M.P[k].syncN+=betAdm[k]*STEP;});
+    M.allN+=(winT+rbT)*STEP;if((D>0?priD/D:99)<A.sync)M.syncN+=(winT+rbT)*STEP;
+    const push=(Lq,n)=>{if(n>1e-9)Lq.push({t,n});};
+    push(rbL,rbT*STEP);push(winL,winT*STEP);betAdm.forEach((b,k)=>push(betL[k],b*STEP));
+    betL.forEach((Lq,k)=>{while(Lq.length&&t-Lq[0].t>A.ttl){M.P[k].expired+=Lq[0].n;Lq.shift();}});
+    let budget=D*STEP;
+    for(const Lq of [rbL,winL])budget-=take(Lq,budget);
+    if(prof.fair){let act=PV.map((_,k)=>k).filter(k=>betL[k].length),it=0;
+      while(budget>1e-6&&act.length&&it++<10){const W=act.reduce((a,k)=>a+PV[k].Q,0);let used=0;act.forEach(k=>{used+=take(betL[k],budget*PV[k].Q/W);});budget-=used;act=act.filter(k=>betL[k].length);if(used<1e-6)break;}}
+    else{while(budget>1e-6){let kk=-1,tt=Infinity;for(let k=0;k<NP;k++)if(betL[k].length&&betL[k][0].t<tt){tt=betL[k][0].t;kk=k;}
+      if(kk<0)break;const b=betL[kk][0],x=Math.min(b.n,budget);b.n-=x;budget-=x;if(b.n<=1e-9)betL[kk].shift();}}
+    const priD2=depth(rbL)+depth(winL),bd2=betL.map(depth),sum2=bd2.reduce((a,b)=>a+b,0);
+    const waits=bd2.map((x,k)=>D<=0?99:prof.fair?priD2/D+(x>0?x/Math.max(shares[k],1e-6):0):priD2/D+sum2/Math.max(betCap,1e-6));
+    waits.forEach((w,k)=>{M.P[k].maxWait=Math.max(M.P[k].maxWait,Math.min(w,60));});
+    M.maxWorst=Math.max(M.maxWorst,Math.min(Math.max(...waits),60));
+    if(t%A.hpa===0){
+      const preOn=pre&&sc.pre&&m>=sc.pre.from&&m<sc.pre.to,backlog=priD2+sum2;
+      const needW=prof.policy==='fila'?(offered+backlog/30)/(cw*.85):offered/(cw*.85);
+      const des={w:clamp(Math.ceil(needW),preOn?preW:2,maxK.w),b:clamp(Math.ceil(offered/(cb*.8)),preOn?preB:2,maxK.b),r:clamp(Math.ceil(readAdm/(cr*.7)),2,maxK.r)};
+      for(const k of ['w','b','r']){const pn=pend[k].reduce((a,x)=>a+x.n,0);
+        if(up[k]+pn<des[k]){let add=des[k]-up[k]-pn;if(prof.policy==='reativo')add=Math.min(add,Math.max(k==='w'?2:1,Math.ceil(up[k]*.25)));pend[k].push({n:add,ready:t+provT[k]});downT[k]=0;}
+        else if(up[k]>des[k]&&pn===0&&backlog<1){downT[k]+=A.hpa;if(downT[k]>=A.down){up[k]=Math.max(des[k],Math.ceil(up[k]*.9));downT[k]=0;}}else downT[k]=0;}
+    }
+    M.peakReq=Math.max(M.peakReq,reqTotal);M.maxW=Math.max(M.maxW,up.w);M.maxB=Math.max(M.maxB,up.b);M.instSec+=(up.w*.2+up.b*.1+up.r*.1)*STEP;
+  }
+  const sum=f=>M.P.reduce((a,P)=>a+P[f],0);
+  M.shedQuota=sum('shedQ');M.lost=sum('shedC')+sum('expired');
+  M.syncPct=(M.syncN+sum('syncN'))/Math.max(1,M.allN+sum('allN'));
+  M.verdict=(M.shedPri>1||M.lost>M.bets*.005)?'crit':(M.lost>M.bets*.0005||M.shedQuota>M.bets*.0005||M.maxWorst>1||M.syncPct<.97)?'warn':'ok';
+  let wk=0;M.P.forEach((P,k)=>{const a=P.shedC+P.expired+P.shedQ,b=M.P[wk].shedC+M.P[wk].expired+M.P[wk].shedQ;if(a>b||(a===b&&P.maxWait>M.P[wk].maxWait))wk=k;});
+  M.worst=wk;return M;
+}
+const VERD={ok:'Aguenta',warn:'Aguenta com ressalvas',crit:'Não aguenta'};
+const vpill=v=>`<span class="vp ${v}">${VERD[v]}</span>`;
+function runAnalysis(){
+  const h={P:cfg.P,spin:5,sbm:.15,cache:cfg.cache};
+  const prof={maxB:cfg.maxB,maxW:cfg.maxW,maxR:cfg.maxR,shards:cfg.shards,policy:cfg.policy,fair:cfg.fair,warm:cfg.warm};
+  const rows=SC.map(sc=>{const cf=aRun(sc,{...h,P:cfg.P/cfg.cells},prof,true),C=cfg.cells;cf.peakReq*=C;cf.lost*=C;cf.maxW*=C;cf.maxB*=C;return {sc,now:aRun(sc,h,BASE,true),cf};});
+  const cell=R=>`<div class="cell-v">${vpill(R.verdict)}<small>espera ${sec(R.maxWorst)} · perdidas ${fmtMil(R.lost)}</small></div>`;
+  $('anBody').innerHTML=rows.map(({sc,now,cf})=>{const P=cf.P[cf.worst],aff=(P.shedC+P.expired+P.shedQ<1&&P.maxWait<.3)?'<span class="hint">nenhum</span>':`${PV[cf.worst].name} <span class="hint">· espera ${sec(P.maxWait)}</span>`;
+    return `<tr><td class="sc-name"><b>${sc.name}</b><span>${sc.when}</span></td><td class="num">${fmt(cf.peakReq)}</td><td>${cell(now)}</td><td>${cell(cf)}</td>
+      <td class="num">${now.maxW} → ${cf.maxW}</td><td class="num">${now.maxB} → ${cf.maxB}</td><td>${aff}</td><td><button data-run="${sc.id}">Ver ao vivo</button></td></tr>`;}).join('');
+  $('anBody').querySelectorAll('button[data-run]').forEach(b=>b.addEventListener('click',()=>{runScenario(b.dataset.run);document.querySelector('.stage').scrollIntoView({behavior:'smooth',block:'start'});}));
+  const ord={ok:0,warn:1,crit:2};
+  const better=rows.filter(r=>ord[r.cf.verdict]<ord[r.now.verdict]).length,crit=rows.filter(r=>r.cf.verdict==='crit').map(r=>r.sc.name);const warn=rows.filter(r=>r.cf.verdict==='warn').map(r=>r.sc.name);
+  const peak=Math.max(...rows.map(r=>r.cf.peakReq));
+  $('anNote').textContent=`Com ${fmtMil(cfg.P)} jogadores simultâneos o pico chega a ${fmtMil(peak)} req/s. Esta configuração aguenta cerca de ${fmtMil(plannedPeak()*cfg.cells)} req/s${cfg.cells>1?` em ${cfg.cells} células`:''} e melhora ${better} de ${rows.length} cenários em relação ao perfil atual.`+
+    (crit.length?` Ainda não aguentam: ${crit.join(', ')}. Suba o máximo de instâncias de escrita, de boxes ou de shards, ou ligue as instâncias aquecidas.`:' Nenhum cenário quebra nesta configuração.')+
+    (warn.length?` Com ressalvas: ${warn.join(', ')}.`:'')+
+    ' Perfil atual: até 4 boxes, 8 instâncias de escrita, 4 de leitura, 4 shards, autoscaler pela fila, fila única e sem pool aquecido.';
+}
+
+// ================= Configuração gerada =================
+function renderConfig(){
+  const sh=shardCap(),wc=capW(),prov=cfg.warm?'15 s (pool aquecido)':'30–60 s';
+  const g=(n,u)=>u>1?` <span class="hint">(${Math.ceil(n/u)} grupos de ${u})</span>`:'';
+  const rows=[
+    ['Células',cfg.cells,cfg.cells,cfg.cells>1?`Pilha inteira replicada; roteador global por hash(walletId); cada célula aguenta cerca de ${fmtMil(plannedPeak())} req/s`:'Uma célula só. Acima de cerca de 1 milhão de req/s, divida em células','dias'],
+    ['Load balancer','2','–','Gerenciado (ALB/NLB) por célula; um nó a cada 80 mil req/s; aquecimento prévio em evento conhecido','–'],
+    ['Box de ingestão','2',cfg.maxB+g(cfg.maxB,U.b),'Mais de 8 mil req/s por box (80% de 10 mil)',cfg.warm?'15 s (pool aquecido)':'30–45 s'],
+    ['api-escrita','2',cfg.maxW+g(cfg.maxW,U.w),cfg.policy==='fila'?`Idade da fila &gt; 1 s ou vazão &gt; 85% (cerca de ${fmtMil(wc)} escritas/s por instância)`:`Vazão &gt; 85% (cerca de ${fmtMil(wc)} escritas/s por instância); sobe 25% por ciclo`,prov],
+    ['api-leitura','2',cfg.maxR+g(cfg.maxR,U.r),'CPU &gt; 70% ou req/s por instância',prov],
+    ['outbox-publisher','2','4 grupos',`Outbox pendente; cerca de ${fmtMil(pubNodeCap())} eventos/s por grupo`,'15–30 s'],
+    ['consumer SQS','2','3','Profundidade da fila FIFO','15–30 s'],
+    ['Shards PostgreSQL',cfg.shards,cfg.shards,`Não escala no pico. Cerca de ${fmtMil(sh)} escritas/s por shard com ganho de ${Math.round(cfg.g*100)}% na escrita; total ${fmtMil(cfg.shards*sh)}/s`,'horas'],
+    ['Réplica por shard','1','2','Crescimento de semanas, não de minutos','minutos'],
+    ['DynamoDB (extrato)','sob demanda','–','Gerenciado, escala sozinho; atraso alvo &lt; 500 ms; TTL de 90 dias','–'],
+    ['Cache Redis','3 nós','–',(cfg.cache?'Cota de 3.000 provedores e respostas por Idempotency-Key por 10 min':'Só cota; repetições vão para a fila')+`; cerca de ${fmtMil(REDIS_NODE)} ops/s por nó`,'–'],
+    ['Fila de BET','–','–',cfg.fair?'Uma faixa por provedor, drenagem ponderada pela cota':'Faixa única, ordem de chegada','–'],
+    ['Cota por provedor','–','–',`Proporcional ao pico planejado de ${fmtMil(plannedPeak())} req/s: `+PV.map(p=>`${p.short} ${fmtK(p.q)}`).join(' · ')+' req/s por provedor','imediato'],
+  ];
+  $('cfgBody').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num">${r[2]}</td><td>${r[3]}</td><td class="num">${r[4]}</td></tr>`).join('');
+  const k=s=>`<span class="k">${s}</span>`,c=s=>`<span class="c">${s}</span>`;
+  $('cfgYaml').innerHTML=[
+    c('# Gerado da configuração ao vivo (HPA + KEDA + roteamento)'),
+    k('celulas:'),`  count: ${cfg.cells}`,`  routing: hash(walletId) % ${cfg.cells}   ${c('# roteador global na borda')}`,`  isolation: SQS, Redis e shards próprios por célula`,`  ${c('# valores abaixo são por célula')}`,
+    k('ingest-box:'),`  min: 2`,`  max: ${cfg.maxB}`,`  scaleOn: { http_rps_per_pod: 8000 }`,
+    k('api-escrita:'),`  min: 2`,`  max: ${cfg.maxW}`,
+    ...(cfg.policy==='fila'?[`  scaleOn:            ${c('# KEDA')}`,`    queue_oldest_age_seconds: 1`,`    queue_throughput_ratio: 0.85`]:[`  scaleOn: { throughput_ratio: 0.85 }  ${c('# reativo')}`,`  scaleUp: { maxPercentPer15s: 25 }`]),
+    `  scaleDown: { below: 0.60, stabilizationSeconds: 300 }`,`  warmPool: ${cfg.warm?'true':'false'}`,
+    k('api-leitura:'),`  min: 2`,`  max: ${cfg.maxR}`,`  scaleOn: { cpu: 70% }`,
+    k('fila:'),`  partitions: 256          ${c('# mapeadas nos '+cfg.shards+' shards')}`,`  key: walletId`,
+    `  admission: { maxOldestAgeSeconds: 4, reject: 429, retryAfter: 2 }`,`  ttlSeconds: 10`,`  syncReplyUnderMs: 300    ${c('# acima disso: 202 + status')}`,
+    `  lanes: [ROLLBACK, WIN, BET]  ${c('# puxa nessa ordem')}`,`  shedFirst: BET`,`  betFairness: ${cfg.fair?'per-provider-weighted':'fifo'}`,
+    k('provedores:'),`  total: ${NPROV}`,`  quotaStore: redis           ${c('# token bucket por providerId')}`,
+    ...PV.map(p=>`  ${p.id}: { providers: ${p.n}, quotaRpsPerProvider: ${Math.round(p.q)} }`),`  quotaExempt: [WIN, ROLLBACK]`,
+    k('redis:'),`  nodes: ${redisNodes()}+`,`  idempotencyCache: ${cfg.cache?'true':'false'}`,...(cfg.cache?[`  idempotencyTtlSeconds: 600`]:[]),`  neverCache: [saldo para débito, lock de carteira]`,
+    k('postgres:'),`  shards: ${cfg.shards}`,`  logicalShards: 256`,`  routing: hash(walletId) % 256`,`  replicasPerShard: 1`,`  failover: patroni`,`  writeGain: ${Math.round(cfg.g*100)}%      ${c('# índices + chave com prefixo')}`,
+    k('leitura:'),`  source: outbox-events      ${c('# projetor')}`,`  maxLagMs: 500`,`  saldo:                     ${c('# Redis')}`,`    key: wallet:{walletId}`,`    write: script Lua, só grava se version maior`,
+    `  extrato:                   ${c('# DynamoDB')}`,`    table: wallet_statement`,`    pk: walletId`,`    sk: "{timestamp}#{operationId}"`,`    ttlDays: 90`,
+  ].join('\n');
+}
+
+// ================= Loop e controles =================
+let nextDraw=0,nextSide=0;
+function frameLoop(ts){
+  if(lastRaf!==null&&!paused){step(Math.min(.05,(ts-lastRaf)/1000));render();if(t>=nextDraw){nextDraw=t+.5;drawChart();}if(t>=nextSide){nextSide=t+.5;renderSide();}}
+  lastRaf=ts;requestAnimationFrame(frameLoop);
+}
+const slider=$('rps');
+slider.addEventListener('input',()=>{stopScenario();manualScen++;ramp=null;rps=+slider.value;});
+$('scSel').innerHTML=SC.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+$('scSel').value='extremo';
+$('bScen').onclick=()=>runScenario($('scSel').value);
+$('bPeak').onclick=()=>runPeak(30000);$('bPeak7').onclick=()=>runPeak(700000);$('bPeak4').onclick=()=>runPeak(4000000);
+$('bCell').onclick=()=>{
+  if(cfg.cells<2){log('warn','Com uma célula só, perder a célula derruba tudo. Use o Perfil 4 milhões ou suba o número de células.');return;}
+  if(cellsDown>=cfg.cells-1){log('warn','Só resta uma célula de pé.');return;}
+  cellsDown++;const n=cfg.cells-cellsDown+1;
+  log('crit',`Célula ${n} caiu. As carteiras dela (${pct(1/cfg.cells)} do total) esperam o failover regional; as outras ${cfg.cells-cellsDown} células seguem normais.`);
+  schedule(12,()=>{cellsDown=Math.max(0,cellsDown-1);log('ok',`Célula ${n} voltou: banco promovido na outra zona e filas drenadas.`);});
+};$('bLow').onclick=lowUse;
+let noisyOn=false;
+$('bNoisy').onclick=()=>{
+  if(noisyOn)return;stopScenario();noisyOn=true;noisyExtra=Math.max(10000,PV[1].Q*2);
+  log('crit',`Provedor B passou a mandar +${fmtMil(noisyExtra)} req/s (bug ou ataque), três vezes a cota dele. Só o excesso dele recebe 429; os outros 2.999 seguem normais.`);
+  schedule(15,()=>{noisyExtra=0;noisyOn=false;log('ok','Provedor B voltou ao normal.');});
+};
+$('bBox').onclick=crashBox;$('bApi').onclick=crashApi;$('bPrimary').onclick=crashPrimary;
+$('bReplica').onclick=crashReplica;$('bSqs').onclick=toggleSqs;$('bWorker').onclick=crashWorkers;$('bRestore').onclick=restore;
+$('bPause').onclick=()=>{paused=!paused;$('bPause').textContent=paused?'Continuar':'Pausar';};
+
+let anTimer=null;
+function onCfg(msg){updUnits();updQuotas();renderConfig();clearTimeout(anTimer);anTimer=setTimeout(runAnalysis,250);if(msg)log('info',msg);}
+const outs={pB:['oB','maxB',v=>String(v),v=>`Configuração: até ${v} boxes.`],pW:['oW','maxW',v=>String(v),v=>`Configuração: até ${v} instâncias de escrita.`],
+  pR:['oR','maxR',v=>String(v),v=>`Configuração: até ${v} instâncias de leitura.`],pS:['oS','shards',v=>String(v),v=>`Configuração: ${v} shards PostgreSQL.`],
+  pC:['oC','cells',v=>String(v),v=>`Configuração: ${v} ${v>1?'células':'célula'}.`],
+  hG:['oG','g',v=>Math.round(v*100)+'%',v=>`Configuração: escrita do banco ${Math.round(v*100)}% mais rápida.`],hP:['oP','P',v=>fmtMil(v),v=>`Público dos cenários: ${fmtMil(v)} jogadores simultâneos.`]};
+Object.entries(outs).forEach(([id,[out,key,f,msg]])=>{const i=$(id);const show=()=>{$(out).textContent=f(+i.value);};show();
+  i.addEventListener('input',show);i.addEventListener('change',()=>{cfg[key]=+i.value;onCfg(msg(+i.value));});});
+$('pPol').addEventListener('change',e=>{cfg.policy=e.target.value;onCfg(cfg.policy==='fila'?'Autoscaler pela fila (KEDA).':'Autoscaler reativo: só vazão, sobe aos poucos.');});
+$('pFair').addEventListener('change',e=>{cfg.fair=e.target.checked;onCfg(cfg.fair?'Fila justa por provedor ligada.':'Fila única por ordem de chegada.');});
+$('pWarm').addEventListener('change',e=>{cfg.warm=e.target.checked;onCfg(cfg.warm?'Instâncias aquecidas ligadas.':'Instâncias aquecidas desligadas.');});
+$('hCache').addEventListener('change',e=>{cfg.cache=e.target.checked;onCfg(cfg.cache?'Cache de Idempotency-Key ligado.':'Cache de Idempotency-Key desligado.');});
+function applyProfile(p,msg,P){
+  Object.assign(cfg,p);if(P)cfg.P=P;
+  $('pC').value=cfg.cells;$('pB').value=cfg.maxB;$('pW').value=cfg.maxW;$('pR').value=cfg.maxR;$('pS').value=cfg.shards;$('hP').value=cfg.P;
+  $('pPol').value=cfg.policy;$('pFair').checked=cfg.fair;$('pWarm').checked=cfg.warm;
+  Object.entries(outs).forEach(([id,[out,,f]])=>{$(out).textContent=f(+$(id).value);});
+  onCfg(msg);
+}
+$('bReset').onclick=()=>applyProfile(BASE,'Configuração voltou ao perfil atual.',50000);
+$('bHuge').onclick=()=>applyProfile(HUGE,`Perfil 4 milhões: ${HUGE.cells} células, cada uma com até ${HUGE.maxB} boxes, ${HUGE.maxW} instâncias de escrita, ${HUGE.maxR} de leitura e ${HUGE.shards} shards.`,5200000);
+$('bBig').onclick=()=>applyProfile(BIG,`Perfil 700 mil: até ${BIG.maxB} boxes, ${BIG.maxW} instâncias de escrita, ${BIG.maxR} de leitura, ${BIG.shards} shards, fila justa e pool aquecido.`,900000);
+
+// Estado inicial
+updUnits();updQuotas();
+for(let i=0;i<150;i++)step(1/30);
+logEl.innerHTML='';
+log('info',`Uso baixo: 800 req/s de ${fmt(NPROV)} provedores. 2 boxes, 2 instâncias de escrita, 2 de leitura, 4 shards com 1 réplica cada. Fila vazia, resposta na hora.`);
+render();drawChart();renderSide();renderConfig();runAnalysis();
+$('ph-baixo').setAttribute('aria-current','step');
+if(matchMedia('(prefers-reduced-motion: reduce)').matches){paused=true;$('bPause').textContent='Continuar';}
+else schedule(4,()=>runPeak(30000));
+requestAnimationFrame(frameLoop);
+})();
+</script>
+
+</html>

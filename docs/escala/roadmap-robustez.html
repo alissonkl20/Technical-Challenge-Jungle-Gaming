@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Roadmap de Robustez Jungle Wallet</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: plano em três faixas de prioridade; cada item é uma linha com título/status à esquerda e Evita / Como / Pronto quando à direita */
+:root{
+  --bg:#eef2ef; --panel:#ffffff; --ink:#13211c; --muted:#5b6b64; --line:#cbd6d0;
+  --accent:#0d7a5f; --accent-soft:#d5ece4;
+  --warn:#b7791f; --warn-soft:#f7ead3; --crit:#c2412d; --crit-soft:#f6dcd6;
+  --f-display:"Familjen Grotesk","Segoe UI",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1714; --panel:#16211d; --ink:#e3ece8; --muted:#93a59d; --line:#2a3a34;
+  --accent:#3fc29a; --accent-soft:#183a30;
+  --warn:#e3a94b; --warn-soft:#3a2f1a; --crit:#ef6f5a; --crit-soft:#3d1f1a; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0f1714; --panel:#16211d; --ink:#e3ece8; --muted:#93a59d; --line:#2a3a34;
+  --accent:#3fc29a; --accent-soft:#183a30;
+  --warn:#e3a94b; --warn-soft:#3a2f1a; --crit:#ef6f5a; --crit-soft:#3d1f1a; color-scheme:dark;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:28px}
+header{display:grid;gap:8px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-size:clamp(30px,4.4vw,44px);line-height:1.08;margin:0;text-wrap:balance}
+h2{font-family:var(--f-display);font-size:24px;margin:0;text-wrap:balance}
+h3{font:600 16px var(--f-body);margin:0}
+p{margin:0}
+.lede{color:var(--muted);max-width:74ch}
+a{color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.overview{grid-template-columns:minmax(0,1fr)}}
+.ov{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:4px;align-content:start;min-width:0}
+.ov .lv{font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ov b{font:700 20px var(--f-display)}
+.ov span{font-size:14px;color:var(--muted)}
+.ov.l1{border-color:var(--accent)} .ov.l1 .lv{color:var(--accent)}
+.base{display:grid;gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:13px;background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:4px 11px;display:inline-flex;gap:7px;align-items:center}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
+.chip.part i{background:var(--warn)}
+.level{display:grid;gap:12px}
+.level-head{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
+.level-head .goal{color:var(--muted);font-size:14px}
+.items{display:grid;gap:10px;list-style:none;margin:0;padding:0;counter-reset:it var(--start)}
+.item{counter-increment:it;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:14px 26px}
+@media (max-width:860px){.item{grid-template-columns:minmax(0,1fr)}}
+.item-title{display:grid;gap:8px;align-content:start}
+.item-title h3::before{content:counter(it);font:600 12px var(--f-mono);color:var(--accent);margin-right:8px}
+.meta{display:flex;flex-wrap:wrap;gap:6px}
+.pill{display:inline-block;font:600 11px var(--f-mono);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.pill.todo{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.pill.part{background:var(--warn-soft);color:var(--warn)}
+.pill.sim{background:var(--accent-soft);color:var(--accent)}
+.pill.eff{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 22px}
+@media (max-width:1000px){.cols{grid-template-columns:minmax(0,1fr)}}
+.col{display:grid;gap:3px;align-content:start;min-width:0}
+.col .k{font:600 10.5px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.col.risk .k{color:var(--crit)}
+.col p{font-size:14px}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--bg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+.note{color:var(--muted);font-size:14px;max-width:84ch}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Serviço financeiro de apostas · robustez distribuída</div>
+    <h1>Roadmap de Robustez</h1>
+    <p class="lede">O núcleo financeiro já resolve idempotência, Inbox/Outbox e lock por carteira, e a arquitetura de escala cobre fila, shards e leitura em NoSQL. Este plano cobre o que mantém o sistema de pé quando várias peças falham juntas, quando um provedor se comporta mal ou quando o problema não é capacidade. A ordem é de prioridade: o nível 1 evita os incidentes mais prováveis com dinheiro e custa menos.</p>
+  </header>
+
+  <section class="overview" aria-label="Resumo dos níveis">
+    <div class="ov l1"><span class="lv">Nível 1 · primeiro</span><b>5 itens</b><span>Isolamento, proteção contra cascata, verificação contínua</span></div>
+    <div class="ov"><span class="lv">Nível 2 · depois</span><b>5 itens</b><span>Provar que aguenta, recuperar dados, mudar sem quebrar</span></div>
+    <div class="ov"><span class="lv">Nível 3 · escala grande</span><b>3 itens</b><span>Região de recuperação, operações entre shards, segurança</span></div>
+  </section>
+
+  <section class="base">
+    <h2>Ponto de partida</h2>
+    <p class="note">Conferido no código do projeto. Os itens em amarelo existem em parte e aparecem no plano para serem completados.</p>
+    <div class="chips">
+      <span class="chip"><i></i><code>financial_operations</code> com Idempotency-Key</span>
+      <span class="chip"><i></i>Lock pessimista por carteira</span>
+      <span class="chip"><i></i>Ledger imutável com triggers</span>
+      <span class="chip"><i></i>Inbox, Outbox com lease, DLQ e redrive</span>
+      <span class="chip"><i></i>Compensação de <code>pending-reference</code></span>
+      <span class="chip"><i></i>Desligamento gracioso com prazo</span>
+      <span class="chip part"><i></i>Reconciliação por carteira, sob demanda</span>
+      <span class="chip part"><i></i>Métricas e <code>correlationId</code>, sem tracing distribuído</span>
+    </div>
+  </section>
+
+  <section class="level">
+    <div class="level-head"><h2>Nível 1</h2><span class="goal">Evita os incidentes mais prováveis com dinheiro. Começar por aqui.</span></div>
+    <ol class="items" style="--start:0">
+      <li class="item">
+        <div class="item-title"><h3>Cota por provedor</h3><div class="meta"><span class="pill todo">a fazer</span><span class="pill sim">na simulação</span><span class="pill eff">esforço M</span></div></div>
+        <div class="cols">
+          <div class="col risk"><span class="k">Evita</span><p>Um provedor com bug ou sob ataque consumir a capacidade de todos e derrubar os outros junto.</p></div>
+          <div class="col"><span class="k">Como fazer aqui</span><p>Token bucket por <code>providerId</code> na box, com 429 e <code>Retry-After</code> só para quem passou da cota. WIN e ROLLBACK isentos. Interruptor para desligar um provedor ou um jogo sem deploy.</p></div>
+          <div class="col"><span class="k">Pronto quando</span><p>Um teste com um provedor mandando 3 vezes a cota não altera a latência dos outros.</p></div>
+        </div>
+      </li>
+      <li class="item">
+        <div class="item-title"><h3>Timeout, retry com jitter e circuit breaker</h3><div class="meta"><span class="pill todo">a fazer</span><span class="pill eff">esforço M</span></div></div>
+        <div class="cols">
+          <div class="col risk"><span class="k">Evita</span><p>Tempestade de retries: um componente fica lento, todos repetem ao mesmo tempo e ele não volta mais.</p></div>
+          <div class="col"><span class="k">Como fazer aqui</span><p>Timeout explícito em box → fila, instância → banco (<code>statement_timeout</code>) e projetor → NoSQL. Backoff exponencial com jitter. Orçamento de retries de cerca de 10% do tráfego. Circuit breaker por shard.</p></div>
+          <div class="col"><span class="k">Pronto quando</span><p>Deixar um shard lento de propósito não aumenta o tráfego total para ele e não afeta os outros três.</p></div>
+        </div>
+      </li>
+      <li class="item">
+        <div class="item-title"><h3>Prioridade e degradação controlada</h3><div class="meta"><span class="pill todo">a fazer</span><span class="pill sim">na simulação</span><span class="pill eff">esforço M</span></div></div>
+        <div class="cols">
+          <div class="col risk"><span class="k">Evita</span><p>Rollback e pagamento de prêmio presos atrás de apostas novas durante uma sobrecarga.</p></div>
+          <div class="col"><span class="k">Como fazer aqui</span><p>Três faixas por partição da fila: ROLLBACK, WIN e BET, puxadas nessa ordem. O corte de carga começa por BET. Modos de degradação: desligar extrato longo e servir saldo do cache.</p></div>
+          <div class="col"><span class="k">Pronto quando</span><p>Sob sobrecarga, a idade da fila de ROLLBACK fica abaixo de 1 s enquanto a de BET cresce.</p></div>
+        </div>
+      </li>
+      <li class="item">
+        <div class="item-title"><h3>Reconciliação contínua</h3><div class="meta"><span class="pill part">parcial</span><span class="pill eff">esforço M</span></div></div>
+        <div class="cols">
+          <div class="col risk"><span class="k">Evita</span><p>Divergência de saldo descoberta pelo jogador ou pelo provedor, dias depois.</p></div>
+          <div class="col"><span class="k">Como fazer aqui</span><p>Transformar o <code>reconcileWallet</code> existente num job que percorre todas as carteiras por shard. Comparar NoSQL × PostgreSQL por amostragem e refazer a projeção se divergir. Bater o arquivo diário de cada provedor com o ledger.</p></div>
+          <div class="col"><span class="k">Pronto quando</span><p>Toda carteira é verificada pelo menos uma vez por dia e qualquer divergência dispara alerta crítico.</p></div>
+        </div>
+      </li>
+      <li class="item">
+        <div class="item-title"><h3>Rastreamento de ponta a ponta e SLOs</h3><div class="meta"><span class="pill part">parcial</span><span class="pill eff">esforço M</span></div></div>
+        <div class="cols">
+          <div class="col risk"><span class="k">Evita</span><p>Horas procurando onde uma aposta travou entre box, fila, instância, shard, Outbox, SQS e projetor.</p></div>
+          <div class="col"><span class="k">Como fazer aqui</span><p>OpenTelemetry levando o <code>correlationId</code> que já existe por toda a cadeia, inclusive nos atributos das mensagens. SLO como p99 do BET abaixo de 300 ms em 99,9% do tempo. Alertas em idade da fila, atraso da Outbox, crescimento da DLQ e atraso do NoSQL.</p></div>
+          <div class="col"><span class="k">Pronto quando</span><p>Dado um <code>operationId</code>, um único trace mostra todos os saltos e quanto tempo cada um levou.</p></div>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="level">
+    <div class="level-head"><h2>Nível 2</h2><span class="goal">Provar que aguenta, recuperar dados e mudar sem quebrar.</span></div>
+    <ol class="items" style="--start:5">
+      <li class="item">
+        <div class="item-title"><h3>Teste de carga e de caos</h3><div class="meta"><span class="pill todo">a fazer</span><span class="pill eff">esforço M</span></div></div>
+        <div class="cols">
+          <div class="col risk"><span class="k">Evita</span><p>Descobrir em produção que os números de capacidade eram otimistas.</p></div>
+          <div class="col"><span class="k">Como fazer aqui</span><p>k6 a 30 mil req/s contra um ambiente com os 4 shards. Game days derrubando box, instância e primário durante a carga, como na simulação. Teste de carga reduzido a cada release grande.</p></div>
+          <div class="col"><span class="k">Pronto quando</span><p>Existe um relatório com a capacidade medida de cada camada e ele é refeito a cada trimestre.</p></div>
+        </div>
+      </li>
+      <li class="item">
+        <div class="item-title"><h3>Backup restaurado de verdade</h3><div class="meta"><span class="pill todo">a fazer</span><span class="pill eff">esforço P</span></div></div>
+        <div class="cols">
+          <div class="col risk"><span class="k">Evita</span><p>Precisar do backup e descobrir que ele não restaura, ou que leva 12 horas.</p></div>
+          <div class="col"><span class="k">Como fazer aqui</span><p>PITR por shard, cópia imutável em outra conta e um teste de restauração mensal com cronômetro.</p></div>
+          <div class="col"><span class="k">Pronto quando</span><p>O último teste de restauração tem menos de 30 dias e o tempo medido está dentro do RTO combinado.</p></div>
+        </div>
+      </li>
+      <li class="item">
+        <div class="item-title"><h3>Deploy seguro</h3><div class="meta"><span class="pill todo">a fazer</span><span class="pill eff">esforço M</span></div></div>
+        <div class="cols">
+          <div class="col risk"><span class="k">Evita</span><p>Uma versão com bug atingir 100% do tráfego, ou uma migração travar um shard.</p></div>
+          <div class="col"><span class="k">Como fazer aqui</span><p>Canary com 5% do tráfego e rollback automático se o erro subir. Migrações em duas fases (expandir, depois contrair) aplicadas shard a shard. Versão no schema de cada evento.</p></div>
+          <div class="col"><span class="k">Pronto quando</span><p>Um deploy com erro proposital volta sozinho em menos de 5 minutos.</p></div>
+        </div>
+      </li>
+      <li class="item">
+        <div class="item-title"><h3>Versão por carteira nos eventos</h3><div class="meta"><span class="pill todo">a fazer</span><span class="pill eff">esforço P</span></div></div>
+        <div class="cols">
+          <div class="col risk"><span class="k">Evita</span><p>O NoSQL aplicar um evento velho por cima de um novo quando eles chegam fora de ordem.</p></div>
+          <div class="col"><span class="k">Como fazer aqui</span><p>Um número de versão por carteira que só cresce, gravado no mesmo commit e levado em cada evento. O projetor ignora versão menor que a já aplicada. Nada depende do relógio das máquinas.</p></div>
+          <div class="col"><span class="k">Pronto quando</span><p>Reenviar eventos embaralhados não muda o saldo final no NoSQL.</p></div>
+        </div>
+      </li>
+      <li class="item">
+        <div class="item-title"><h3>Carteira quente</h3><div class="meta"><span class="pill todo">a fazer</span><span class="pill eff">esforço M</span></div></div>
+        <div class="cols">
+          <div class="col risk"><span class="k">Evita</span><p>Uma conta muito movimentada (casa, jackpot) virar o gargalo do shard inteiro, já que tudo dela é serial.</p></div>
+          <div class="col"><span class="k">Como fazer aqui</span><p>Dividir a conta em subcontas espalhadas pelos shards e somar na leitura. Só para as poucas contas que precisam.</p></div>
+          <div class="col"><span class="k">Pronto quando</span><p>A conta mais movimentada aguenta 10 vezes o volume atual sem aumentar a idade da fila do shard.</p></div>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="level">
+    <div class="level-head"><h2>Nível 3</h2><span class="goal">Para quando o negócio exigir continuidade mesmo com uma região inteira fora.</span></div>
+    <ol class="items" style="--start:10">
+      <li class="item">
+        <div class="item-title"><h3>Região de recuperação</h3><div class="meta"><span class="pill todo">a fazer</span><span class="pill eff">esforço G</span></div></div>
+        <div class="cols">
+          <div class="col risk"><span class="k">Evita</span><p>Ficar fora do ar quando uma região inteira da nuvem cai.</p></div>
+          <div class="col"><span class="k">Como fazer aqui</span><p>Multi-AZ primeiro, que é obrigatório. Depois uma região ativa-passiva com RPO e RTO definidos. Sem escrita ativa-ativa entre regiões: cada carteira tem uma região dona.</p></div>
+          <div class="col"><span class="k">Pronto quando</span><p>Um exercício de troca de região é feito duas vezes por ano dentro do RTO.</p></div>
+        </div>
+      </li>
+      <li class="item">
+        <div class="item-title"><h3>Saga para operações entre carteiras</h3><div class="meta"><span class="pill todo">a fazer</span><span class="pill eff">esforço M</span></div></div>
+        <div class="cols">
+          <div class="col risk"><span class="k">Evita</span><p>Transferência ou bônus pela metade quando as duas carteiras estão em shards diferentes.</p></div>
+          <div class="col"><span class="k">Como fazer aqui</span><p>Saga com passos idempotentes e compensação, no mesmo padrão da <code>pending-reference</code> que já existe. Nunca transação distribuída.</p></div>
+          <div class="col"><span class="k">Pronto quando</span><p>Derrubar o segundo shard no meio de uma transferência termina com a operação completa ou compensada, nunca pela metade.</p></div>
+        </div>
+      </li>
+      <li class="item">
+        <div class="item-title"><h3>Segurança entre serviços</h3><div class="meta"><span class="pill todo">a fazer</span><span class="pill eff">esforço M</span></div></div>
+        <div class="cols">
+          <div class="col risk"><span class="k">Evita</span><p>Requisição forjada ou repetida por terceiros, e um serviço interno comprometido falar com todos.</p></div>
+          <div class="col"><span class="k">Como fazer aqui</span><p>Assinatura HMAC com timestamp nas requisições dos provedores. mTLS entre serviços internos. Rotação de segredos. WAF e proteção contra DDoS na frente do load balancer.</p></div>
+          <div class="col"><span class="k">Pronto quando</span><p>Uma requisição válida reenviada depois de 5 minutos é recusada, e nenhum serviço aceita conexão interna sem certificado.</p></div>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <p class="note">Esforço: P cabe em uma sprint, M em duas ou três, G é um projeto próprio. Os itens 1 e 3 já estão na simulação "Jungle Wallet em Escala": use o botão "Provedor C enlouquece" e derrube o primário de um shard durante o pico para ver a cota e a prioridade funcionando.</p>
+</div>
+
+</html>

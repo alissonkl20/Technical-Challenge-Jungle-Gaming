@@ -8,6 +8,25 @@ Stack: Bun 1.x, TypeScript 7 (strict), NestJS 11, PostgreSQL 17, MikroORM 7,
 SQS via LocalStack e Docker Compose.
 Decisões, garantias e trade-offs: **[ARCHITECTURE.md](./ARCHITECTURE.md)**.
 
+## Escalabilidade projetada
+
+![Demonstração de escalabilidade: do uso baixo a 4 milhões de req/s](./docs/escala/demo-escalabilidade.gif)
+
+Simulação da arquitetura projetada para volume alto. Mostra uso baixo,
+pico de 30 mil, perfil de 700 mil e pico de 4 milhões de req/s em 8
+células. Também mostra a queda de uma célula, o painel de métricas e a
+redução do autoscaler. Vídeo em resolução maior:
+[`demo-escalabilidade.mp4`](./docs/escala/demo-escalabilidade.mp4).
+
+| Página (abra no navegador) | Conteúdo |
+|---|---|
+| [`simulacao-escala.html`](./docs/escala/simulacao-escala.html) | Simulação interativa: load balancer, boxes de ingestão e fila, escrita, shards, CQRS em Redis e DynamoDB, 3.000 provedores com cota, células, falhas, métricas, configuração e YAML gerados, e mensageria |
+| [`cenarios-de-carga.html`](./docs/escala/cenarios-de-carga.html) | Cenários de apostas com dados de mercado, comparação de perfis e ablação |
+| [`roadmap-robustez.html`](./docs/escala/roadmap-robustez.html) | Melhorias para deixar a arquitetura distribuída mais robusta |
+
+Capacidades, tempos e custos são estimativas do modelo, não medições.
+Valide-os com teste de carga antes de fixar números.
+
 ## Subir o ambiente
 
 Requisito: Docker com Compose v2 (`docker compose version`). Bun, Node e
@@ -237,3 +256,4 @@ o teste afirma é ausência de erros, deadlocks e divergências.
 - [`docs/02-decisoes-tradeoffs-e-avaliacao.md`](./docs/02-decisoes-tradeoffs-e-avaliacao.md): decisões técnicas, interpretações de regras, trade-offs e evidências por critério.
 - [`docs/03-funcionamento-do-sistema.md`](./docs/03-funcionamento-do-sistema.md): o que acontece em cada situação (respostas, gravações e eventos).
 - [`docs/Mapa do Serviço de Apostas.html`](./docs/Mapa%20do%20Servi%C3%A7o%20de%20Apostas.html): mapa visual com diagramas da configuração, das tabelas e do ciclo de ponta a ponta, simulador de cenários em JSON e guia de integração. Baixe e abra no navegador (precisa de internet para os diagramas).
+- [`docs/escala/`](./docs/escala/): simulação de escalabilidade até 4 milhões de req/s, cenários de carga, roadmap de robustez e o vídeo de demonstração (`gravar-demo.js` regrava o vídeo).
