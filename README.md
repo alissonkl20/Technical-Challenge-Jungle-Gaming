@@ -87,7 +87,8 @@ Em produção: `bun run build` e depois os scripts sem `:dev`.
 ## API HTTP
 
 Autenticação: headers `X-Provider-Code` e `X-Provider-Key` em todas as rotas,
-exceto health. `providerId` no corpo ou na rota só confirma o escopo (UUID ou
+exceto health e `/metrics` (decisão e desenho com IdP em
+[ARCHITECTURE.md §8](./ARCHITECTURE.md#8-autenticação)). `providerId` no corpo ou na rota só confirma o escopo (UUID ou
 código do provider autenticado); qualquer outro valor → 403.
 
 | Rota                                                                      | Função                                                                                         |
@@ -234,4 +235,5 @@ o teste afirma é ausência de erros, deadlocks e divergências.
 
 - [`docs/01-arquitetura.md`](./docs/01-arquitetura.md): processos, módulos, tabelas e garantias, fluxo de uma transação, mensageria e recuperação.
 - [`docs/02-decisoes-tradeoffs-e-avaliacao.md`](./docs/02-decisoes-tradeoffs-e-avaliacao.md): decisões técnicas, interpretações de regras, trade-offs e evidências por critério.
-- [`docs/03-funcionamento-do-sistema.md`](./docs/03-funcionamento-do-sistema.md): funcionamento do sistema.
+- [`docs/03-funcionamento-do-sistema.md`](./docs/03-funcionamento-do-sistema.md): o que acontece em cada situação (respostas, gravações e eventos).
+- [`docs/Mapa do Serviço de Apostas.html`](./docs/Mapa%20do%20Servi%C3%A7o%20de%20Apostas.html): mapa visual com diagramas da configuração, das tabelas e do ciclo de ponta a ponta, simulador de cenários em JSON e guia de integração. Baixe e abra no navegador (precisa de internet para os diagramas).

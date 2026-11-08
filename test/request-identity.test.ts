@@ -4,6 +4,7 @@ import {
   FinancialOperation,
   InboxMessage,
   InvalidPayloadError,
+  InvalidStateTransitionError,
   OutboxMessage,
   OutboxRetryPolicy,
   OutboxStatus,
@@ -247,6 +248,53 @@ describe("InboxMessage", () => {
       InboxMessage.rehydrate({ ...state, consumerName: "  " }),
     ).toThrow(InvalidPayloadError);
   });
+
+  test("a received message is unprocessed until it is marked", () => {
+    const receivedAt = new Date("2026-11-07T10:00:00.000Z");
+    const message = InboxMessage.receive({
+      id: operationId,
+      consumerName: "wager-command",
+      messageId: "sqs-2",
+      fingerprint: PayloadFingerprint.fromDigest("a".repeat(64)),
+      receivedAt,
+    });
+
+    expect(message.isProcessed()).toBe(false);
+    expect(message.processedAt).toBeUndefined();
+
+    const processedAt = new Date("2026-11-07T10:00:01.000Z");
+    message.markProcessed(processedAt);
+
+    expect(message.isProcessed()).toBe(true);
+    expect(message.processedAt).toEqual(processedAt);
+  });
+
+  test("a message cannot be processed twice", () => {
+    const message = InboxMessage.rehydrate({
+      ...state,
+      receivedAt: "2026-11-07T10:00:00.000Z",
+      processedAt: "2026-11-07T10:00:01.000Z",
+    });
+
+    expect(message.isProcessed()).toBe(true);
+    expect(() =>
+      message.markProcessed(new Date("2026-11-07T10:00:02.000Z")),
+    ).toThrow(InvalidStateTransitionError);
+  });
+
+  test("a message cannot be processed before it was received", () => {
+    const message = InboxMessage.receive({
+      id: operationId,
+      consumerName: "wager-command",
+      messageId: "sqs-3",
+      fingerprint: PayloadFingerprint.fromDigest("a".repeat(64)),
+      receivedAt: new Date("2026-11-07T10:00:00.000Z"),
+    });
+
+    expect(() =>
+      message.markProcessed(new Date("2026-11-07T09:59:59.000Z")),
+    ).toThrow(InvalidPayloadError);
+  });
 });
 
 describe("OutboxRetryPolicy", () => {
@@ -285,13 +333,78 @@ describe("OutboxMessage", () => {
     publishedAt: null,
   };
 
-  test("the next attempt is scheduled from the retry policy", () => {
-    const event = OutboxMessage.rehydrate(state);
-    const now = new Date("2026-11-07T10:00:00.000Z");
+  const policy = OutboxRetryPolicy.of(1_000, 60_000);
+  const now = new Date("2026-11-07T10:00:00.000Z");
 
-    expect(
-      event.nextAttemptAt(OutboxRetryPolicy.of(1_000, 60_000), now).getTime(),
-    ).toBe(now.getTime() + 4_000);
+  test("an enqueued event is pending and due when it occurred", () => {
+    const occurredAt = new Date("2026-11-07T09:00:00.000Z");
+    const envelope = { eventId: operationId, data: { walletId: "w-1" } };
+    const event = OutboxMessage.enqueue({
+      eventId: operationId,
+      aggregateId: otherOperationId,
+      eventType: "WalletBalanceChanged",
+      occurredAt,
+      toJSON: () => envelope,
+    });
+
+    expect(event.isPending()).toBe(true);
+    expect(event.attempts).toBe(0);
+    expect(event.payload).toEqual(envelope);
+    expect(event.isDue(occurredAt)).toBe(true);
+    expect(event.isDue(new Date(occurredAt.getTime() - 1))).toBe(false);
+    expect(event.publishedAt).toBeNull();
+  });
+
+  test("a failed attempt goes back to pending after the backoff", () => {
+    const event = OutboxMessage.rehydrate(state);
+
+    event.scheduleRetry(now, policy, 6, "broker timeout");
+
+    expect(event.status).toBe(OutboxStatus.Pending);
+    expect(event.nextAttemptAt.getTime()).toBe(now.getTime() + 4_000);
+    expect(event.lastError).toBe("broker timeout");
+    expect(event.isDue(now)).toBe(false);
+    expect(event.isDue(event.nextAttemptAt)).toBe(true);
+  });
+
+  test("the last allowed attempt makes the event FAILED", () => {
+    const event = OutboxMessage.rehydrate({ ...state, attempts: 6 });
+
+    event.scheduleRetry(now, policy, 6, "broker down");
+
+    expect(event.isExhausted()).toBe(true);
+    expect(event.isDue(new Date("2030-01-01T00:00:00.000Z"))).toBe(false);
+  });
+
+  test("a claimed event is marked published and clears the last error", () => {
+    const event = OutboxMessage.rehydrate({ ...state, lastError: "earlier" });
+
+    event.markPublished(now);
+
+    expect(event.isPublished()).toBe(true);
+    expect(event.publishedAt).toEqual(now);
+    expect(event.lastError).toBeNull();
+  });
+
+  test("only a claimed event can be published or retried", () => {
+    for (const status of [
+      OutboxStatus.Pending,
+      OutboxStatus.Published,
+      OutboxStatus.Failed,
+    ]) {
+      const event = OutboxMessage.rehydrate({
+        ...state,
+        status,
+        publishedAt:
+          status === OutboxStatus.Published ? "2026-11-07T10:00:01.000Z" : null,
+      });
+      expect(() => event.markPublished(now)).toThrow(
+        InvalidStateTransitionError,
+      );
+      expect(() => event.scheduleRetry(now, policy, 6, "x")).toThrow(
+        InvalidStateTransitionError,
+      );
+    }
   });
 
   test("the correlation ID falls back through the payload to the event ID", () => {

@@ -1,7 +1,8 @@
 # Organização dos testes
 
 Os testes de PostgreSQL foram separados por comportamento para permitir leitura
-e execução isolada. Os nomes dos casos foram preservados.
+e execução isolada. A tabela abaixo lista as suítes principais; a lista completa
+está no script `test:integration` do `package.json`.
 
 | Arquivo                                             | Escopo                                            |
 | --------------------------------------------------- | ------------------------------------------------- |

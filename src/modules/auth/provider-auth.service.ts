@@ -14,10 +14,20 @@ import {
   ProviderStatus,
 } from "../finance/domain/index.js";
 import { ProvidersService } from "../providers/providers.service.js";
-import type { AuthenticatedProvider } from "./types/index.js";
+import type {
+  AuthenticatedProvider,
+  ProviderIdentityPort,
+  RequestHeaders,
+} from "./types/index.js";
 
+/**
+ * API key adapter of `ProviderIdentityPort`: one shared secret per provider,
+ * configured by the operator in `PROVIDER_API_KEYS`. There is no user table
+ * and no password hashing; replacing this adapter with an OIDC one is the
+ * documented path to an external Identity Provider.
+ */
 @Injectable()
-export class ProviderAuthService {
+export class ProviderAuthService implements ProviderIdentityPort {
   private readonly apiKeys: ProviderApiKeyMap;
 
   constructor(
@@ -25,6 +35,18 @@ export class ProviderAuthService {
     @Inject(ProvidersService) private readonly providers: ProvidersService,
   ) {
     this.apiKeys = configuredProviderApiKeys(configuration);
+  }
+
+  identify(headers: RequestHeaders): Promise<AuthenticatedProvider> {
+    const code = singleHeader(headers["x-provider-code"]);
+    const key = singleHeader(headers["x-provider-key"]);
+    if (code === undefined || key === undefined) {
+      throw new UnauthorizedException({
+        code: "PROVIDER_AUTHENTICATION_REQUIRED",
+        message: "X-Provider-Code and X-Provider-Key headers are required",
+      });
+    }
+    return this.authenticate(code, key);
   }
 
   async authenticate(
@@ -82,4 +104,13 @@ export function constantTimeEqual(expected: string, actual: string): boolean {
   const expectedDigest = createHash("sha256").update(expected, "utf8").digest();
   const actualDigest = createHash("sha256").update(actual, "utf8").digest();
   return timingSafeEqual(expectedDigest, actualDigest);
+}
+
+function singleHeader(
+  value: string | string[] | undefined,
+): string | undefined {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return undefined;
+  }
+  return value;
 }

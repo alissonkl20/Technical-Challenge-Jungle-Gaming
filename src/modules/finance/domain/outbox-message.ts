@@ -1,4 +1,4 @@
-import { InvalidPayloadError } from "./errors.js";
+import { InvalidPayloadError, InvalidStateTransitionError } from "./errors.js";
 
 export const OutboxStatus = {
   Pending: "PENDING",
@@ -19,6 +19,21 @@ export interface OutboxMessageState {
   readonly attempts: number;
   readonly createdAt: Date | string;
   readonly publishedAt: Date | string | null;
+  /** Defaults to `createdAt` when the row predates the read (tests, fixtures). */
+  readonly nextAttemptAt?: Date | string;
+  readonly lastError?: string | null;
+}
+
+/**
+ * What the outbox needs from an integration event. Declared here, as a shape,
+ * so the domain does not depend on the events module that implements it.
+ */
+export interface OutboxEnqueueable {
+  readonly eventId: string;
+  readonly aggregateId: string;
+  readonly eventType: string;
+  readonly occurredAt: Date;
+  toJSON(): unknown;
 }
 
 /** Exponential backoff bounds for republishing a failed event. */
@@ -69,6 +84,20 @@ export class OutboxRetryPolicy {
  * a convention: a publisher reads committed rows, so an event for a rolled
  * back transaction does not exist to be read. The cost is at-least-once
  * delivery, which the inbox absorbs on the consuming side.
+ *
+ * Valid transitions:
+ *
+ *   enqueue → PENDING ──claim──► PROCESSING ──markPublished──► PUBLISHED
+ *                ▲                   │
+ *                └── scheduleRetry ──┤ (attempts < max)
+ *                                    └── scheduleRetry ──► FAILED (attempts = max)
+ *
+ * The claim itself is a single SQL statement (`FOR UPDATE SKIP LOCKED` plus a
+ * lease), because only PostgreSQL can arbitrate between concurrent
+ * publishers; it counts the attempt, so a publisher that dies mid-send still
+ * consumes budget. Every transition after the claim is decided here and then
+ * persisted under the lease (fencing). PUBLISHED and FAILED are terminal for
+ * the publisher; FAILED only leaves through the operator's redrive.
  */
 export class OutboxMessage {
   private constructor(
@@ -76,14 +105,36 @@ export class OutboxMessage {
     readonly aggregateId: string,
     readonly eventType: string,
     readonly payload: unknown,
-    readonly status: OutboxStatus,
-    readonly attempts: number,
     readonly createdAt: Date,
-    readonly publishedAt: Date | null,
-  ) {
-    Object.freeze(this);
+    private _status: OutboxStatus,
+    private _attempts: number,
+    private _nextAttemptAt: Date,
+    private _publishedAt: Date | null,
+    private _lastError: string | null,
+  ) {}
+
+  /**
+   * A new event to publish, due immediately. The payload is the event's
+   * serialized envelope, captured once so the stored row cannot drift from
+   * the typed event that produced it.
+   */
+  static enqueue(event: OutboxEnqueueable): OutboxMessage {
+    const occurredAt = timestamp(event.occurredAt, "occurredAt");
+    return new OutboxMessage(
+      nonEmpty(event.eventId, "eventId"),
+      nonEmpty(event.aggregateId, "aggregateId"),
+      nonEmpty(event.eventType, "eventType"),
+      event.toJSON(),
+      occurredAt,
+      OutboxStatus.Pending,
+      0,
+      occurredAt,
+      null,
+      null,
+    );
   }
 
+  /** Reconstruction from persistence — does not revalidate transitions. */
   static rehydrate(state: OutboxMessageState): OutboxMessage {
     const createdAt = timestamp(state.createdAt, "createdAt");
     const publishedAt =
@@ -99,20 +150,98 @@ export class OutboxMessage {
       state.aggregateId,
       nonEmpty(state.eventType, "eventType"),
       state.payload,
+      createdAt,
       assertStatus(state.status),
       state.attempts,
-      createdAt,
+      state.nextAttemptAt === undefined
+        ? createdAt
+        : timestamp(state.nextAttemptAt, "nextAttemptAt"),
       publishedAt,
+      state.lastError ?? null,
     );
   }
 
-  isPublished(): boolean {
-    return this.status === OutboxStatus.Published;
+  get status(): OutboxStatus {
+    return this._status;
   }
 
-  /** When the next attempt is due after this one failed. */
-  nextAttemptAt(policy: OutboxRetryPolicy, now: Date): Date {
-    return new Date(now.getTime() + policy.delayAfter(this.attempts));
+  get attempts(): number {
+    return this._attempts;
+  }
+
+  get nextAttemptAt(): Date {
+    return this._nextAttemptAt;
+  }
+
+  get publishedAt(): Date | null {
+    return this._publishedAt;
+  }
+
+  get lastError(): string | null {
+    return this._lastError;
+  }
+
+  isPending(): boolean {
+    return this._status === OutboxStatus.Pending;
+  }
+
+  isPublished(): boolean {
+    return this._status === OutboxStatus.Published;
+  }
+
+  /** Attempts exhausted: only an operator redrive brings it back. */
+  isExhausted(): boolean {
+    return this._status === OutboxStatus.Failed;
+  }
+
+  /** Whether a publisher may claim this event now. */
+  isDue(now: Date): boolean {
+    return (
+      this._status === OutboxStatus.Pending &&
+      this._nextAttemptAt.getTime() <= now.getTime()
+    );
+  }
+
+  /** The claimed event was accepted by the broker. */
+  markPublished(at: Date): void {
+    this.assertClaimed("mark as published");
+    // No ordering check against `createdAt`: that column is stamped by the
+    // database clock and `at` by the worker's, and a small skew between them
+    // must never block a publication.
+    const publishedAt = timestamp(at, "publishedAt");
+    this._status = OutboxStatus.Published;
+    this._publishedAt = publishedAt;
+    this._lastError = null;
+  }
+
+  /**
+   * Records a failed attempt on the claimed event. With budget left it goes
+   * back to PENDING, due after the policy's exponential backoff; once
+   * `attempts` reaches `maxAttempts` it becomes FAILED and is never claimed
+   * again automatically. `attempts` already counts this attempt (the claim
+   * incremented it), so it is not incremented a second time here.
+   */
+  scheduleRetry(
+    now: Date,
+    policy: OutboxRetryPolicy,
+    maxAttempts: number,
+    error: string,
+  ): void {
+    this.assertClaimed("schedule a retry for");
+    if (!Number.isInteger(maxAttempts) || maxAttempts < 1) {
+      throw new InvalidPayloadError(
+        "Outbox max attempts must be a positive integer",
+      );
+    }
+    this._lastError = error;
+    if (this._attempts >= maxAttempts) {
+      this._status = OutboxStatus.Failed;
+      return;
+    }
+    this._status = OutboxStatus.Pending;
+    this._nextAttemptAt = new Date(
+      now.getTime() + policy.delayAfter(this._attempts),
+    );
   }
 
   /**
@@ -147,6 +276,14 @@ export class OutboxMessage {
     const data = asRecord(envelope.data);
     const nested = data === null ? undefined : data[key];
     return typeof nested === "string" ? nested : null;
+  }
+
+  private assertClaimed(action: string): void {
+    if (this._status !== OutboxStatus.Processing) {
+      throw new InvalidStateTransitionError(
+        `Cannot ${action} outbox event ${this.id} in status ${this._status}`,
+      );
+    }
   }
 }
 

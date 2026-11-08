@@ -1,0 +1,974 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Mapa do Serviço de Apostas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: coluna de leitura de 1080px; navegação fixa por seção; diagramas e JSON em blocos roláveis próprios */
+:root {
+  --bg: #f5f7f6;
+  --surface: #ffffff;
+  --sunk: #e9eeec;
+  --fg: #16201d;
+  --muted: #56645f;
+  --line: #d3dcd8;
+  --accent: #0f6b5c;
+  --accent-soft: #dcefe9;
+  --ok: #1d7a3e;
+  --ok-soft: #e1f3e6;
+  --warn: #9a5b00;
+  --warn-soft: #fbeed6;
+  --bad: #b3261e;
+  --bad-soft: #fbe3e1;
+  --info: #2f5fa8;
+  --info-soft: #e2ebf8;
+  --code-bg: #0f1a17;
+  --code-fg: #d9e6e1;
+  --code-key: #8fd3c1;
+  --code-str: #f1c98b;
+  --code-num: #b5a8f0;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1513; --surface: #151f1c; --sunk: #1b2724; --fg: #e3ece8; --muted: #9aaaa4; --line: #2a3935;
+    --accent: #5cc4ad; --accent-soft: #173830; --ok: #6fcf8f; --ok-soft: #16301f; --warn: #f0b25a; --warn-soft: #3a2a10;
+    --bad: #f08a82; --bad-soft: #3b1714; --info: #8db4ef; --info-soft: #172843;
+    --code-bg: #0a100e; --code-fg: #d9e6e1; --code-key: #8fd3c1; --code-str: #f1c98b; --code-num: #b5a8f0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1513; --surface: #151f1c; --sunk: #1b2724; --fg: #e3ece8; --muted: #9aaaa4; --line: #2a3935;
+  --accent: #5cc4ad; --accent-soft: #173830; --ok: #6fcf8f; --ok-soft: #16301f; --warn: #f0b25a; --warn-soft: #3a2a10;
+  --bad: #f08a82; --bad-soft: #3b1714; --info: #8db4ef; --info-soft: #172843;
+  --code-bg: #0a100e; --code-fg: #d9e6e1; --code-key: #8fd3c1; --code-str: #f1c98b; --code-num: #b5a8f0;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.6;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.wrap {
+  max-width: 1080px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 2.9rem); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 1.75rem; font-weight: 700; }
+h3 { font-size: 1.15rem; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+:not(pre) > code { background: var(--sunk); padding: 0.1em 0.35em; border-radius: 4px; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* topo */
+header.hero { background: var(--surface); border-bottom: 1px solid var(--line); }
+header.hero .wrap { padding-block: 40px 28px; display: grid; gap: 14px; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.lede { color: var(--muted); font-size: 1.05rem; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.fact { font-family: var(--font-mono); font-size: 0.78rem; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; color: var(--muted); background: var(--bg); }
+
+nav.toc { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+nav.toc .wrap { display: flex; gap: 4px; overflow-x: auto; padding-block: 8px; scrollbar-width: thin; }
+nav.toc a { flex: none; text-decoration: none; color: var(--muted); font-size: 0.88rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; white-space: nowrap; }
+nav.toc a:hover { background: var(--sunk); color: var(--fg); }
+
+section.block { padding-block: 48px 8px; }
+section.block > .wrap { display: grid; gap: 20px; }
+.sec-head { display: grid; gap: 8px; }
+.sec-head .num { font-family: var(--font-mono); color: var(--accent); font-size: 0.8rem; letter-spacing: 0.06em; }
+.sec-head p { color: var(--muted); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.panel-pad { padding: 18px; }
+.diagram { overflow-x: auto; padding: 16px; }
+.diagram pre.mermaid { margin: 0; background: transparent; min-width: 640px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.85rem; color: var(--muted); padding: 0 18px 16px; }
+
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.card { display: grid; gap: 6px; align-content: start; padding: 14px 16px; }
+.card h3 { font-size: 1rem; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.card p { font-size: 0.9rem; color: var(--muted); }
+.port { font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); background: var(--accent-soft); padding: 1px 8px; border-radius: 4px; font-weight: 500; }
+
+table.t { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+table.t th, table.t td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.t th { font-family: var(--font-display); font-weight: 600; font-size: 0.85rem; color: var(--muted); letter-spacing: 0.02em; background: var(--sunk); }
+table.t tr:last-child td { border-bottom: 0; }
+.tbl-wrap { overflow-x: auto; }
+
+/* pills */
+.pill { display: inline-block; font-family: var(--font-mono); font-size: 0.74rem; font-weight: 500; padding: 1px 8px; border-radius: 4px; white-space: nowrap; }
+.p-ok { background: var(--ok-soft); color: var(--ok); }
+.p-warn { background: var(--warn-soft); color: var(--warn); }
+.p-bad { background: var(--bad-soft); color: var(--bad); }
+.p-info { background: var(--info-soft); color: var(--info); }
+.p-mute { background: var(--sunk); color: var(--muted); }
+
+/* ciclo */
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 40px 1fr; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.steps li:last-child { border-bottom: 0; }
+.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 0.8rem; font-weight: 500; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--sunk); color: var(--muted); }
+.steps li.tx::before { background: var(--accent-soft); color: var(--accent); }
+.steps li.after::before { background: var(--info-soft); color: var(--info); }
+.steps .what { display: grid; gap: 2px; min-width: 0; }
+.steps .what strong { font-weight: 600; }
+.steps .what span { color: var(--muted); font-size: 0.9rem; }
+.steps .sql { font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent); overflow-wrap: anywhere; }
+.steps li.band { display: block; counter-increment: none; border-bottom: 0; }
+.steps li.band::before { content: none; }
+.band { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 16px; background: var(--accent-soft); color: var(--accent); }
+.band.after { background: var(--info-soft); color: var(--info); }
+.band.before { background: var(--sunk); color: var(--muted); }
+
+/* simulador */
+.sim { display: grid; gap: 0; overflow: hidden; }
+.sim-tabs { display: flex; gap: 6px; flex-wrap: wrap; padding: 14px; border-bottom: 1px solid var(--line); background: var(--sunk); }
+.sim-tabs button {
+  font: inherit; font-size: 0.85rem; font-weight: 500; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+  padding: 6px 12px; border-radius: 6px; display: inline-flex; gap: 8px; align-items: center;
+}
+.sim-tabs button[aria-selected="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.sim-tabs .code { font-family: var(--font-mono); font-size: 0.72rem; }
+.sim-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 0; }
+.sim-col { padding: 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.sim-col + .sim-col { border-left: 1px solid var(--line); }
+@media (max-width: 700px) { .sim-col + .sim-col { border-left: 0; border-top: 1px solid var(--line); } }
+.sim-col h3 { font-size: 0.95rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.sim-note { font-size: 0.9rem; color: var(--muted); padding: 12px 16px; border-top: 1px solid var(--line); }
+.writes { display: grid; gap: 6px; }
+.write { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: baseline; font-size: 0.86rem; }
+.write .op { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 500; padding: 1px 6px; border-radius: 3px; min-width: 58px; text-align: center; }
+.write .tbl { font-family: var(--font-mono); font-size: 0.82rem; }
+.write .det { color: var(--muted); display: block; font-size: 0.82rem; }
+.empty { color: var(--muted); font-size: 0.88rem; font-style: italic; }
+
+/* json */
+.code-box { position: relative; min-width: 0; }
+pre.json {
+  margin: 0; background: var(--code-bg); color: var(--code-fg);
+  font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.55;
+  padding: 14px 16px; border-radius: 8px; overflow-x: auto; white-space: pre;
+}
+pre.json .k { color: var(--code-key); }
+pre.json .s { color: var(--code-str); }
+pre.json .n { color: var(--code-num); }
+pre.json .c { color: #7f948d; }
+.copy {
+  position: absolute; top: 8px; right: 8px; font: inherit; font-size: 0.72rem; cursor: pointer;
+  background: rgba(255,255,255,0.08); color: var(--code-fg); border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 4px; padding: 2px 8px;
+}
+.copy:hover { background: rgba(255,255,255,0.16); }
+.http-line { font-family: var(--font-mono); font-size: 0.82rem; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.verb { font-weight: 600; color: var(--accent); }
+
+/* integração */
+.flow { display: grid; gap: 14px; counter-reset: f; }
+.fstep { display: grid; grid-template-columns: 44px 1fr; gap: 14px; }
+.fstep .badge { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; background: var(--accent); color: var(--surface); }
+.fstep .fbody { display: grid; gap: 10px; min-width: 0; }
+.fstep .fbody > p { color: var(--muted); font-size: 0.92rem; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; }
+.lbl { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.callout { border-left: 3px solid var(--warn); background: var(--warn-soft); padding: 10px 14px; border-radius: 0 6px 6px 0; font-size: 0.9rem; }
+.callout strong { color: var(--warn); }
+
+footer { padding-block: 40px 56px; color: var(--muted); font-size: 0.85rem; }
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Monólito modular · NestJS · PostgreSQL · SQS</span>
+    <h1>Mapa do Serviço de Apostas</h1>
+    <p class="lede">Como o sistema está montado, como as tabelas se ligam, o que acontece com cada operação de ponta a ponta e como um provedor de jogos integra a API. Os exemplos partem de uma wallet com <strong>100.00 BRL</strong>.</p>
+    <div class="facts">
+      <span class="fact">1 API + 3 workers</span>
+      <span class="fact">10 tabelas</span>
+      <span class="fact">1 caso de uso financeiro</span>
+      <span class="fact">dinheiro como string "25.00"</span>
+      <span class="fact">ACID: saldo + Ledger + Outbox</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Seções">
+  <div class="wrap">
+    <a href="#config">Configuração</a>
+    <a href="#tabelas">Tabelas</a>
+    <a href="#ciclo">Ciclo de ponta a ponta</a>
+    <a href="#simulador">Simulador JSON</a>
+    <a href="#eventos">Eventos</a>
+    <a href="#integrar">Como integrar</a>
+  </div>
+</nav>
+
+<main>
+<!-- 1. CONFIGURAÇÃO -->
+<section class="block" id="config">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="num">01 · CONFIGURAÇÃO</span>
+      <h2>Processos e infraestrutura</h2>
+      <p>Um único código e uma única imagem Docker, executados como processos separados. Eles não conversam entre si pela rede: coordenam tudo pelo PostgreSQL. O SQS só transporta mensagens.</p>
+    </div>
+    <div class="panel">
+      <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  P(["Provedor de jogos"])
+  subgraph APP["Monólito modular · mesma imagem"]
+    API["API HTTP<br/>:3000"]
+    SQSW["sqs-event-consumer<br/>métricas :9465"]
+    OBW["outbox-publisher<br/>métricas :9464"]
+    PRW["pending-reference-worker<br/>métricas :9466"]
+    UC{{"Caso de uso financeiro<br/>único"}}
+  end
+  DB[("PostgreSQL :5432<br/>fonte da verdade")]
+  subgraph LS["SQS · LocalStack :4566"]
+    QC[["wager-transactions.fifo<br/>(comandos)"]]
+    DLQ[["wager-transactions-dlq.fifo"]]
+    QE[["fila de eventos"]]
+  end
+  M["migrate<br/>(roda antes de tudo)"]
+
+  P -- "HTTP + API key" --> API
+  P -- "WagerTransactionRequested" --> QC
+  QC --> SQSW
+  SQSW -. "erro permanente" .-> DLQ
+  API --> UC
+  SQSW --> UC
+  PRW --> UC
+  UC == "1 transação ACID" ==> DB
+  OBW -- "lê outbox" --> DB
+  OBW -- "publica eventos" --> QE
+  QE -. "consome" .-> P
+  M --> DB
+</pre>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="panel card"><h3>API HTTP <span class="port">:3000</span></h3><p>Contrato do provedor: wallets, transações, consultas, reconciliação, <code>/health</code> e <code>/metrics</code>.</p></div>
+      <div class="panel card"><h3>sqs-event-consumer <span class="port">:9465</span></h3><p>Lê comandos da fila FIFO, deduplica pelo Inbox e só faz ACK depois do commit. Erro permanente vai para a DLQ.</p></div>
+      <div class="panel card"><h3>outbox-publisher <span class="port">:9464</span></h3><p>Reserva eventos da Outbox com lease, publica no SQS, faz retry com backoff e marca <code>FAILED</code> após 6 tentativas.</p></div>
+      <div class="panel card"><h3>pending-reference-worker <span class="port">:9466</span></h3><p>Retoma transações em <code>PENDING_REFERENCE</code> (5 s, 10 s, 20 s… até 1 h; expira em 24 h) e a compensação pós-COMMIT.</p></div>
+      <div class="panel card"><h3>PostgreSQL <span class="port">:5432</span></h3><p>Decide tudo: lock por wallet, idempotência por <code>ON CONFLICT</code>, CHECK, UNIQUE, FK composta e triggers.</p></div>
+      <div class="panel card"><h3>migrate</h3><p>Aplica as migrations versionadas (<code>bun run migration:up</code>) antes da API e dos workers subirem.</p></div>
+    </div>
+    <div class="panel tbl-wrap">
+      <table class="t">
+        <thead><tr><th>Variável</th><th>Exemplo local</th><th>Para que serve</th></tr></thead>
+        <tbody>
+          <tr><td><code>PROVIDER_API_KEYS</code></td><td class="mono">{"provider-a":"provider-a-local-key-…"}</td><td>Mapa código → chave de cada provedor. A chave não é gerada pela API: é configurada aqui</td></tr>
+          <tr><td><code>PROVIDER_ADMIN_API_KEY</code></td><td class="mono">local-admin-key-…</td><td>Chave das rotas administrativas (<code>X-Admin-Key</code>)</td></tr>
+          <tr><td><code>SQS_WAGER_COMMAND_QUEUE_NAME</code></td><td class="mono">wager-transactions.fifo</td><td>Fila de comandos de entrada</td></tr>
+          <tr><td><code>SQS_EVENT_MAX_RECEIVE_COUNT</code></td><td class="mono">5</td><td>Recebimentos antes de mandar para a DLQ</td></tr>
+          <tr><td><code>PENDING_REFERENCE_TTL_HOURS</code></td><td class="mono">24</td><td>Tempo máximo esperando a referência chegar</td></tr>
+          <tr><td><code>SHUTDOWN_TIMEOUT_MS</code></td><td class="mono">—</td><td>Prazo para terminar o que está em andamento no SIGTERM</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 2. TABELAS -->
+<section class="block" id="tabelas">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="num">02 · DADOS</span>
+      <h2>Tabelas e relacionamentos</h2>
+      <p>As chaves estrangeiras são compostas e carregam <code>provider_id</code> e <code>player_id</code>. Por isso o banco recusa, por exemplo, um lançamento de Ledger que aponte para a wallet de outro jogador ou de outro provedor.</p>
+    </div>
+    <div class="panel">
+      <div class="diagram">
+<pre class="mermaid">
+erDiagram
+  providers ||--o{ players : "cadastra"
+  players ||--o{ wallets : "1 por moeda"
+  providers ||--o{ financial_operations : "idempotência"
+  financial_operations ||--o| wager_transactions : "origina"
+  wallets ||--o{ wager_transactions : "recebe"
+  wager_transactions ||--o| wager_transactions : "referencia (WIN/REFUND/ROLLBACK → BET)"
+  wager_transactions ||--o| wallet_ledger_entries : "0 ou 1 lançamento"
+  wallets ||--o{ wallet_ledger_entries : "histórico"
+  wager_transactions ||--o| wager_recoveries : "recuperação"
+
+  providers {
+    uuid id PK
+    string code UK
+    string name
+    string status
+  }
+  players {
+    uuid id PK
+    uuid provider_id FK
+    string external_player_id
+    string status
+  }
+  wallets {
+    uuid id PK
+    uuid provider_id FK
+    uuid player_id FK
+    string currency
+    numeric balance "CHECK >= 0"
+    int version
+  }
+  financial_operations {
+    uuid id PK
+    uuid provider_id FK
+    string idempotency_key "UK por provider"
+    string external_transaction_id "UK por provider"
+    char payload_hash
+    int response_http_status
+    json response_snapshot
+  }
+  wager_transactions {
+    uuid id PK
+    uuid wallet_id FK
+    uuid financial_operation_id FK
+    uuid reference_transaction_id FK
+    enum kind "OPENING BET WIN LOSS REFUND ROLLBACK"
+    enum status "PROCESSED REJECTED PENDING_REFERENCE"
+    numeric amount
+    string round_id
+    string failure_code
+  }
+  wallet_ledger_entries {
+    uuid id PK
+    uuid wallet_id FK
+    uuid wager_transaction_id FK "UK"
+    enum entry_type "DEBIT CREDIT"
+    numeric amount
+    numeric balance_before
+    numeric balance_after
+    xid database_transaction_id
+  }
+  wager_recoveries {
+    uuid id PK
+    uuid wager_transaction_id FK "UK"
+    enum status
+    int recovery_attempts
+    int compensation_attempts
+  }
+  inbox {
+    uuid id PK
+    string consumer_name "UK com message_id"
+    string message_id
+    char payload_hash
+  }
+  outbox {
+    uuid id PK "= eventId"
+    uuid aggregate_id
+    string event_type
+    json payload
+    enum status
+    int attempts
+    timestamp locked_until
+  }
+</pre>
+      </div>
+      <div class="legend">
+        <span><code>||--o{</code> um para muitos</span>
+        <span><code>||--o|</code> um para zero ou um</span>
+        <span><code>inbox</code> e <code>outbox</code> não têm FK: guardam identidade de mensagem e de evento</span>
+      </div>
+    </div>
+    <div class="panel tbl-wrap">
+      <table class="t">
+        <thead><tr><th>Tabela</th><th>Papel</th><th>Garantia no banco</th></tr></thead>
+        <tbody>
+          <tr><td><code>wallets</code></td><td>Saldo materializado e versão</td><td>saldo ≥ 0; <code>UNIQUE (player_id, currency)</code>; ligada ao Ledger pelo ID da transação SQL</td></tr>
+          <tr><td><code>financial_operations</code></td><td>Uma linha por requisição, com o snapshot da resposta</td><td><code>UNIQUE (provider_id, idempotency_key)</code> e <code>(provider_id, external_transaction_id)</code>; imutável depois de concluída</td></tr>
+          <tr><td><code>wager_transactions</code></td><td>O fato financeiro e o seu estado</td><td>estado terminal imutável; um resultado ativo por BET; uma reversão por alvo</td></tr>
+          <tr><td><code>wallet_ledger_entries</code></td><td>Lançamentos</td><td>append-only; <code>balance_after = balance_before ± amount</code></td></tr>
+          <tr><td><code>outbox</code></td><td>Eventos a publicar</td><td>payload imutável; só o estado de entrega muda</td></tr>
+          <tr><td><code>inbox</code></td><td>Mensagens SQS já consumidas</td><td><code>UNIQUE (consumer_name, message_id)</code> + hash do conteúdo</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 3. CICLO -->
+<section class="block" id="ciclo">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="num">03 · EXECUÇÃO</span>
+      <h2>Ciclo de ponta a ponta de uma BET</h2>
+      <p>Do pedido do provedor até o evento chegar na fila. HTTP e SQS entram em pontos diferentes, mas a partir do passo 3 seguem exatamente o mesmo caminho.</p>
+    </div>
+    <div class="panel">
+      <div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant P as Provedor
+  participant A as API / sqs-consumer
+  participant U as Caso de uso
+  participant D as PostgreSQL
+  participant O as outbox-publisher
+  participant Q as SQS (eventos)
+
+  P->>A: POST /wagering/transactions (Idempotency-Key)
+  A->>A: autentica + valida payload (400 se inválido)
+  A->>U: comando BET 25.00 BRL
+  U->>D: BEGIN
+  U->>D: INSERT financial_operations ON CONFLICT
+  alt chave já existe
+    D-->>U: operação gravada
+    U-->>A: replay (mesma resposta) ou 409
+  else chave nova
+    U->>D: SELECT wallet FOR UPDATE (lock)
+    U->>U: regras: saldo, referência, rodada
+    U->>D: INSERT wager_transactions (PROCESSED)
+    U->>D: INSERT wallet_ledger_entries (DEBIT)
+    U->>D: UPDATE wallets (100.00 → 75.00, version+1)
+    U->>D: INSERT outbox (2 eventos)
+    U->>D: UPDATE financial_operations (snapshot)
+    U->>D: COMMIT
+    U-->>A: PROCESSED, saldo 75.00
+  end
+  A-->>P: 200 + JSON (no SQS: ACK da mensagem)
+  O->>D: reserva eventos (SKIP LOCKED + lease)
+  O->>Q: publica WagerTransactionProcessed e WalletBalanceChanged
+  O->>D: marca published_at
+  Q-->>P: provedor consome os eventos
+</pre>
+      </div>
+    </div>
+    <div class="panel">
+      <ol class="steps">
+        <li class="band before">Antes da transação</li>
+        <li><div class="what"><strong>Autenticação</strong><span>Headers <code>X-Provider-Code</code> e <code>X-Provider-Key</code>, comparação em tempo constante. Falha responde 401; provider de outro escopo, 403.</span></div></li>
+        <li><div class="what"><strong>Validação do payload</strong><span>Campos desconhecidos, <code>"1e3"</code>, mais de duas casas ou <code>kind: "OPENING"</code> respondem 400 e não gravam nada.</span></div></li>
+        <li class="band">Dentro de uma única transação PostgreSQL</li>
+        <li class="tx"><div class="what"><strong>Reserva da idempotência</strong><span>Só o banco arbitra corrida entre instâncias. Se a chave existe com o mesmo hash, devolve a resposta gravada; com hash diferente, 409.</span><span class="sql">INSERT INTO financial_operations … ON CONFLICT DO NOTHING</span></div></li>
+        <li class="tx"><div class="what"><strong>Lock da wallet</strong><span>Serializa só esta wallet. Wallets diferentes seguem em paralelo.</span><span class="sql">SELECT … FROM wallets WHERE id = $1 FOR UPDATE</span></div></li>
+        <li class="tx"><div class="what"><strong>Regras de negócio</strong><span>Saldo suficiente, referência existe e pertence ao mesmo jogador, wallet, moeda e rodada, BET ainda sem resultado. Se falhar: <code>REJECTED</code> + <code>failureCode</code>, sem mexer no saldo.</span></div></li>
+        <li class="tx"><div class="what"><strong>Grava o fato, o lançamento e o saldo</strong><span>Transação de aposta, lançamento no Ledger e saldo novo. Triggers conferem a aritmética.</span><span class="sql">INSERT wager_transactions · INSERT wallet_ledger_entries · UPDATE wallets</span></div></li>
+        <li class="tx"><div class="what"><strong>Grava os eventos na Outbox</strong><span>O envelope final do evento é gravado junto, para nunca sair um evento de algo que não foi confirmado.</span><span class="sql">INSERT INTO outbox (id = eventId, payload)</span></div></li>
+        <li class="tx"><div class="what"><strong>COMMIT</strong><span>Tudo ou nada. Se o processo morrer antes, o PostgreSQL desfaz e o reenvio processa do zero.</span></div></li>
+        <li class="band after">Depois do commit</li>
+        <li class="after"><div class="what"><strong>Resposta ou ACK</strong><span>HTTP devolve o JSON com o status certo (200, 202, 422). No SQS, o ACK acontece só agora.</span></div></li>
+        <li class="after"><div class="what"><strong>Publicação assíncrona</strong><span>O outbox-publisher reserva lotes com <code>SKIP LOCKED</code>, publica no SQS e marca como publicado. Se cair no meio, o lease expira e outro publica com o mesmo <code>eventId</code>.</span></div></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- 4. SIMULADOR -->
+<section class="block" id="simulador">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="num">04 · DADOS EM JSON</span>
+      <h2>Simulador de cenários</h2>
+      <p>Escolha uma situação para ver a requisição, a resposta, o que fica gravado em cada tabela e quais eventos saem. Valores de exemplo; os IDs são ilustrativos.</p>
+    </div>
+    <div class="panel sim">
+      <div class="sim-tabs" role="tablist" id="simTabs"></div>
+      <div class="sim-body">
+        <div class="sim-col">
+          <h3>Requisição <span class="http-line" id="simReqLine"></span></h3>
+          <div class="code-box"><pre class="json" id="simReq"></pre></div>
+        </div>
+        <div class="sim-col">
+          <h3>Resposta <span id="simStatus"></span></h3>
+          <div class="code-box"><pre class="json" id="simRes"></pre></div>
+        </div>
+      </div>
+      <div class="sim-body" style="border-top:1px solid var(--line)">
+        <div class="sim-col">
+          <h3>O que é gravado</h3>
+          <div class="writes" id="simWrites"></div>
+        </div>
+        <div class="sim-col">
+          <h3>Eventos publicados</h3>
+          <div class="writes" id="simEvents"></div>
+        </div>
+      </div>
+      <p class="sim-note" id="simNote"></p>
+    </div>
+  </div>
+</section>
+
+<!-- 5. EVENTOS -->
+<section class="block" id="eventos">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="num">05 · SAÍDA</span>
+      <h2>Formato dos eventos</h2>
+      <p>Todo evento tem o mesmo envelope: identidade, rastreio e versão ficam fora; <code>data</code> carrega só campos de negócio. A entrega é at-least-once: use o <code>eventId</code> para descartar duplicatas.</p>
+    </div>
+    <div class="pair">
+      <div><div class="lbl">WalletBalanceChanged</div><div class="code-box"><pre class="json" data-json="evBalance"></pre></div></div>
+      <div><div class="lbl">WagerTransactionProcessed</div><div class="code-box"><pre class="json" data-json="evProcessed"></pre></div></div>
+    </div>
+    <div class="panel tbl-wrap">
+      <table class="t">
+        <thead><tr><th>eventType</th><th>Quando sai</th><th>Campos em <code>data</code></th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill p-ok">WagerTransactionProcessed</span></td><td>Toda transação processada</td><td><code>wagerTransactionId</code>, <code>providerId</code>, <code>kind</code>, <code>money</code></td></tr>
+          <tr><td><span class="pill p-info">WalletBalanceChanged</span></td><td>Quando o saldo muda (não sai em LOSS)</td><td><code>walletId</code>, <code>transactionId</code>, <code>direction</code>, <code>money</code>, <code>balanceBefore</code>, <code>balanceAfter</code>, <code>walletVersion</code></td></tr>
+          <tr><td><span class="pill p-bad">WagerTransactionRejected</span></td><td>Rejeição de regra de negócio</td><td><code>providerId</code>, <code>externalTransactionId</code>, <code>failureCode</code>, e quando existir <code>wagerTransactionId</code>, <code>kind</code>, <code>money</code></td></tr>
+          <tr><td><span class="pill p-warn">WagerTransactionPendingReference</span></td><td>Chegou antes da transação que referencia</td><td><code>wagerTransactionId</code>, <code>providerId</code>, <code>externalReferenceTransactionId</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 6. INTEGRAÇÃO -->
+<section class="block" id="integrar">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="num">06 · INTEGRAÇÃO</span>
+      <h2>Como um provedor integra a API</h2>
+      <p>O caminho completo, do cadastro até a primeira aposta liquidada. Todas as rotas do provedor usam os mesmos dois headers de autenticação.</p>
+    </div>
+    <div class="callout"><strong>Antes de começar:</strong> a chave do provedor não é devolvida por nenhuma rota. Ela é configurada pelo operador em <code>PROVIDER_API_KEYS</code> e entregue ao provedor por um canal seguro. Use HTTPS fora do ambiente local.</div>
+
+    <div class="flow">
+      <div class="fstep"><div class="badge">1</div><div class="fbody">
+        <h3>Operador cadastra o provedor</h3>
+        <p>Rota administrativa, com <code>X-Admin-Key</code>. O <code>code</code> precisa ser o mesmo usado em <code>PROVIDER_API_KEYS</code>.</p>
+        <div class="pair">
+          <div><div class="lbl">Requisição</div><div class="code-box"><pre class="json" data-json="i1req"></pre></div></div>
+          <div><div class="lbl">201 Created</div><div class="code-box"><pre class="json" data-json="i1res"></pre></div></div>
+        </div>
+      </div></div>
+
+      <div class="fstep"><div class="badge">2</div><div class="fbody">
+        <h3>Provedor cadastra o jogador</h3>
+        <p><code>externalPlayerId</code> é o ID do jogador no sistema do provedor. Guarde o <code>id</code> devolvido: ele é o <code>playerId</code> das próximas chamadas.</p>
+        <div class="pair">
+          <div><div class="lbl">Requisição</div><div class="code-box"><pre class="json" data-json="i2req"></pre></div></div>
+          <div><div class="lbl">201 Created</div><div class="code-box"><pre class="json" data-json="i2res"></pre></div></div>
+        </div>
+      </div></div>
+
+      <div class="fstep"><div class="badge">3</div><div class="fbody">
+        <h3>Abre a wallet</h3>
+        <p>Uma wallet por jogador e moeda. Com saldo inicial maior que zero, o sistema grava uma transação <code>OPENING</code> e um CREDIT no Ledger. Uma segunda wallet na mesma moeda responde 409.</p>
+        <div class="pair">
+          <div><div class="lbl">Requisição</div><div class="code-box"><pre class="json" data-json="i3req"></pre></div></div>
+          <div><div class="lbl">201 Created</div><div class="code-box"><pre class="json" data-json="i3res"></pre></div></div>
+        </div>
+      </div></div>
+
+      <div class="fstep"><div class="badge">4</div><div class="fbody">
+        <h3>Envia a aposta e o resultado</h3>
+        <p><code>Idempotency-Key</code> é obrigatório; o padrão recomendado é <code>{providerId}:{externalTransactionId}</code>. <code>referenceExternalTransactionId</code> é proibido em BET, opcional em WIN e LOSS e obrigatório em REFUND e ROLLBACK.</p>
+        <div class="pair">
+          <div><div class="lbl">BET</div><div class="code-box"><pre class="json" data-json="i4req"></pre></div></div>
+          <div><div class="lbl">WIN da mesma rodada</div><div class="code-box"><pre class="json" data-json="i4win"></pre></div></div>
+        </div>
+      </div></div>
+
+      <div class="fstep"><div class="badge">5</div><div class="fbody">
+        <h3>Ou envia pela fila SQS</h3>
+        <p>Mesmo caso de uso e mesmas validações do HTTP. A deduplicação é pelo <code>messageId</code> no Inbox, e a idempotência de negócio continua sendo o <code>idempotencyKey</code>.</p>
+        <div class="code-box"><pre class="json" data-json="i5"></pre></div>
+      </div></div>
+
+      <div class="fstep"><div class="badge">6</div><div class="fbody">
+        <h3>Consulta e confere</h3>
+        <p>Saldo, Ledger paginado por cursor, status de uma transação pelo seu próprio ID e reconciliação do saldo com o Ledger.</p>
+        <div class="panel tbl-wrap">
+          <table class="t">
+            <thead><tr><th>Rota</th><th>Para que serve</th></tr></thead>
+            <tbody>
+              <tr><td class="mono"><span class="verb">GET</span> /wallets/:walletId</td><td>Saldo e versão</td></tr>
+              <tr><td class="mono"><span class="verb">GET</span> /wallets/:walletId/ledger?cursor=&amp;limit=50</td><td>Lançamentos com cursor estável</td></tr>
+              <tr><td class="mono"><span class="verb">GET</span> /providers/:providerId/wagering/transactions/:externalTransactionId</td><td>Status pelo ID do provedor, inclusive rejeições anteriores à criação da transação</td></tr>
+              <tr><td class="mono"><span class="verb">GET</span> /wagering/transactions/:transactionId</td><td>Transação pelo ID interno</td></tr>
+              <tr><td class="mono"><span class="verb">POST</span> /wallets/:walletId/reconciliation</td><td>Saldo armazenado × saldo recalculado pelo Ledger</td></tr>
+              <tr><td class="mono"><span class="verb">GET</span> /health/live · /health/ready</td><td>Sem autenticação; <code>ready</code> confere PostgreSQL e SQS</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pair">
+          <div><div class="lbl">Ledger · GET /wallets/:id/ledger</div><div class="code-box"><pre class="json" data-json="i6ledger"></pre></div></div>
+          <div><div class="lbl">Reconciliação · 200</div><div class="code-box"><pre class="json" data-json="i6rec"></pre></div></div>
+        </div>
+      </div></div>
+
+      <div class="fstep"><div class="badge">7</div><div class="fbody">
+        <h3>Trate cada código de resposta</h3>
+        <p>A regra de ouro: em erro de infraestrutura ou timeout, reenvie com a <strong>mesma</strong> <code>Idempotency-Key</code> e o mesmo payload. Nunca gere uma chave nova para tentar de novo.</p>
+        <div class="panel tbl-wrap">
+          <table class="t">
+            <thead><tr><th>HTTP</th><th>Significado</th><th>O que o provedor faz</th></tr></thead>
+            <tbody>
+              <tr><td><span class="pill p-ok">200</span></td><td>Processada (ou replay, com <code>idempotentReplay: true</code>)</td><td>Segue o jogo</td></tr>
+              <tr><td><span class="pill p-warn">202</span></td><td><code>PENDING_REFERENCE</code>: a referência ainda não chegou</td><td>Consulta o status depois ou aguarda o evento</td></tr>
+              <tr><td><span class="pill p-bad">400</span></td><td>Payload inválido ou <code>Idempotency-Key</code> ausente; nada gravado</td><td>Corrige o payload</td></tr>
+              <tr><td><span class="pill p-bad">401 / 403</span></td><td>Sem credencial ou recurso de outro provedor</td><td>Confere os headers</td></tr>
+              <tr><td><span class="pill p-mute">404</span></td><td>Recurso inexistente ou de outro provedor</td><td>Confere os IDs</td></tr>
+              <tr><td><span class="pill p-bad">409</span></td><td>Mesma chave com payload diferente; wallet duplicada</td><td>Não reenvie: a operação original não mudou</td></tr>
+              <tr><td><span class="pill p-bad">422</span></td><td>Rejeição de negócio, gravada com <code>failureCode</code></td><td>Resultado definitivo; um novo pedido usa outro ID</td></tr>
+              <tr><td><span class="pill p-warn">503</span></td><td>Dependência indisponível (PostgreSQL)</td><td>Reenvia com a mesma chave, com backoff</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">Feito a partir do código do repositório: rotas em <code>wagering-api.controller.ts</code>, contratos em <code>dto/</code>, eventos em <code>integration-event.ts</code> e o schema das migrations. Detalhes em <code>docs/01-arquitetura.md</code>, <code>docs/02-decisoes-tradeoffs-e-avaliacao.md</code> e <code>docs/03-funcionamento-do-sistema.md</code>.</div>
+</footer>
+
+<script>
+(function () {
+  var PID = "0192f28a-1b3c-7e10-9a41-2f6c8d0e1a01";
+  var PLAYER = "0192f28f-5dc0-7d58-bdb2-814ad6a0f4a1";
+  var WALLET = "0192f291-27dd-7d3f-8071-5f8685deef37";
+  var TX_BET = "0192f2a0-4410-7b2e-8c55-1d9e7a3b6c10";
+  var AUTH = "X-Provider-Code: provider-a\nX-Provider-Key: provider-a-local-key-…\nContent-Type: application/json";
+
+  function betBody(extra) {
+    var b = {
+      providerId: "provider-a",
+      externalTransactionId: "transaction-123",
+      playerId: PLAYER,
+      walletId: WALLET,
+      roundId: "round-987",
+      gameId: "fortune-chimp",
+      kind: "BET",
+      money: { amount: "25.00", currency: "BRL" }
+    };
+    for (var k in extra) b[k] = extra[k];
+    return b;
+  }
+
+  var J = {
+    evBalance: {
+      eventId: "0192f2a0-5a01-7c3d-9e10-6b2f4a8d1c22",
+      eventType: "WalletBalanceChanged",
+      aggregateId: WALLET,
+      correlationId: "c0ffee00-0000-4000-8000-000000000001",
+      occurredAt: "2026-11-07T15:00:00.120Z",
+      version: 1,
+      data: {
+        walletId: WALLET,
+        transactionId: TX_BET,
+        direction: "DEBIT",
+        money: { amount: "25.00", currency: "BRL" },
+        balanceBefore: { amount: "100.00", currency: "BRL" },
+        balanceAfter: { amount: "75.00", currency: "BRL" },
+        walletVersion: 2
+      }
+    },
+    evProcessed: {
+      eventId: "0192f2a0-5a00-7c3d-9e10-6b2f4a8d1c21",
+      eventType: "WagerTransactionProcessed",
+      aggregateId: TX_BET,
+      correlationId: "c0ffee00-0000-4000-8000-000000000001",
+      occurredAt: "2026-11-07T15:00:00.120Z",
+      version: 1,
+      data: {
+        wagerTransactionId: TX_BET,
+        providerId: PID,
+        kind: "BET",
+        money: { amount: "25.00", currency: "BRL" }
+      }
+    },
+    i1req: "POST /providers\nX-Admin-Key: local-admin-key-…\n\n" + JSON.stringify({ code: "provider-a", name: "Provider A" }, null, 2),
+    i1res: { id: PID, code: "provider-a", name: "Provider A", status: "ACTIVE" },
+    i2req: "POST /providers/provider-a/players\n" + AUTH + "\n\n" + JSON.stringify({ externalPlayerId: "player-1" }, null, 2),
+    i2res: { id: PLAYER, providerId: PID, externalPlayerId: "player-1", status: "ACTIVE" },
+    i3req: "POST /wallets\n" + AUTH + "\n\n" + JSON.stringify({ playerId: PLAYER, initialBalance: { amount: "100.00", currency: "BRL" } }, null, 2),
+    i3res: { id: WALLET, playerId: PLAYER, balance: { amount: "100.00", currency: "BRL" }, version: 1 },
+    i4req: "POST /wagering/transactions\nIdempotency-Key: provider-a:transaction-123\n\n" + JSON.stringify(betBody({}), null, 2),
+    i4win: "POST /wagering/transactions\nIdempotency-Key: provider-a:transaction-124\n\n" + JSON.stringify(betBody({ externalTransactionId: "transaction-124", kind: "WIN", referenceExternalTransactionId: "transaction-123", money: { amount: "40.00", currency: "BRL" } }), null, 2),
+    i5: {
+      messageId: "msg-123",
+      type: "WagerTransactionRequested",
+      correlationId: "c0ffee00-0000-4000-8000-000000000002",
+      occurredAt: "2026-11-07T15:00:00.000Z",
+      data: {
+        providerId: "provider-a",
+        externalTransactionId: "transaction-123",
+        idempotencyKey: "provider-a:transaction-123",
+        playerId: PLAYER,
+        walletId: WALLET,
+        roundId: "round-987",
+        gameId: "fortune-chimp",
+        kind: "BET",
+        money: { amount: "25.00", currency: "BRL" }
+      }
+    },
+    i6ledger: {
+      items: [
+        { id: "0192f2a0-6b10-7d01-8a20-3c4d5e6f7a81", walletId: WALLET, transactionId: TX_BET, direction: "DEBIT",
+          money: { amount: "25.00", currency: "BRL" }, balanceBefore: { amount: "100.00", currency: "BRL" },
+          balanceAfter: { amount: "75.00", currency: "BRL" }, createdAt: "2026-11-07T15:00:00.118Z" }
+      ],
+      limit: 50,
+      nextCursor: null
+    },
+    i6rec: {
+      walletId: WALLET,
+      storedBalance: { amount: "75.00", currency: "BRL" },
+      calculatedBalance: { amount: "75.00", currency: "BRL" },
+      difference: { amount: "0.00", currency: "BRL" },
+      consistent: true,
+      checkedEntries: 2
+    }
+  };
+
+  var S = [
+    {
+      id: "bet", label: "BET de 25.00", code: "200", cls: "p-ok",
+      line: "POST /wagering/transactions",
+      req: { headers: "Idempotency-Key: provider-a:transaction-123", body: betBody({}) },
+      res: { transactionId: TX_BET, externalTransactionId: "transaction-123", status: "PROCESSED", balance: { amount: "75.00", currency: "BRL" }, failureCode: null, idempotentReplay: false },
+      writes: [
+        ["INSERT", "financial_operations", "reserva a chave (provider, idempotency_key) com o payload_hash"],
+        ["LOCK", "wallets", "FOR UPDATE na wallet 100.00"],
+        ["INSERT", "wager_transactions", "kind BET, status PROCESSED, amount 25.00"],
+        ["INSERT", "wallet_ledger_entries", "DEBIT 25.00 · antes 100.00 · depois 75.00"],
+        ["UPDATE", "wallets", "balance 75.00 · version 1 → 2"],
+        ["INSERT", "outbox", "2 eventos com status PENDING"],
+        ["UPDATE", "financial_operations", "status 200 + snapshot da resposta"]
+      ],
+      events: [["WagerTransactionProcessed", "p-ok"], ["WalletBalanceChanged", "p-info"]],
+      note: "Tudo acima acontece em um único COMMIT. Se o processo morrer antes, nada fica gravado; se morrer depois, o reenvio devolve este mesmo resultado."
+    },
+    {
+      id: "win", label: "WIN de 40.00", code: "200", cls: "p-ok",
+      line: "POST /wagering/transactions",
+      req: { headers: "Idempotency-Key: provider-a:transaction-124", body: betBody({ externalTransactionId: "transaction-124", kind: "WIN", referenceExternalTransactionId: "transaction-123", money: { amount: "40.00", currency: "BRL" } }) },
+      res: { transactionId: "0192f2a1-0c20-7a10-8b33-4e5f6a7b8c90", externalTransactionId: "transaction-124", status: "PROCESSED", balance: { amount: "115.00", currency: "BRL" }, failureCode: null, idempotentReplay: false },
+      writes: [
+        ["INSERT", "financial_operations", "nova chave transaction-124"],
+        ["LOCK", "wallets", "FOR UPDATE na wallet 75.00"],
+        ["INSERT", "wager_transactions", "kind WIN, reference_transaction_id → BET, mesma rodada"],
+        ["INSERT", "wallet_ledger_entries", "CREDIT 40.00 · antes 75.00 · depois 115.00"],
+        ["UPDATE", "wallets", "balance 115.00 · version 2 → 3"],
+        ["INSERT", "outbox", "2 eventos"],
+        ["UPDATE", "financial_operations", "snapshot da resposta"]
+      ],
+      events: [["WagerTransactionProcessed", "p-ok"], ["WalletBalanceChanged", "p-info"]],
+      note: "A BET passa a ter um resultado ativo. Um segundo WIN, LOSS ou REFUND para a mesma BET é rejeitado com REFERENCE_ALREADY_SETTLED."
+    },
+    {
+      id: "nofunds", label: "BET sem saldo", code: "422", cls: "p-bad",
+      line: "POST /wagering/transactions",
+      req: { headers: "Idempotency-Key: provider-a:transaction-200", body: betBody({ externalTransactionId: "transaction-200", money: { amount: "150.00", currency: "BRL" } }) },
+      res: { transactionId: "0192f2a2-1d30-7b20-9c44-5f6a7b8c9d01", externalTransactionId: "transaction-200", status: "REJECTED", balance: { amount: "100.00", currency: "BRL" }, failureCode: "INSUFFICIENT_FUNDS", idempotentReplay: false },
+      writes: [
+        ["INSERT", "financial_operations", "reserva a chave"],
+        ["LOCK", "wallets", "lê o saldo 100.00 com lock"],
+        ["INSERT", "wager_transactions", "status REJECTED · failure_code INSUFFICIENT_FUNDS"],
+        ["INSERT", "outbox", "1 evento de rejeição"],
+        ["UPDATE", "financial_operations", "status 422 + snapshot"]
+      ],
+      events: [["WagerTransactionRejected", "p-bad"]],
+      note: "Rejeição é um resultado definitivo e auditável: não mexe no saldo nem no Ledger. Reenviar a mesma requisição devolve a mesma rejeição."
+    },
+    {
+      id: "replay", label: "Reenvio igual", code: "200", cls: "p-ok",
+      line: "POST /wagering/transactions",
+      req: { headers: "Idempotency-Key: provider-a:transaction-123", body: betBody({}) },
+      res: { transactionId: TX_BET, externalTransactionId: "transaction-123", status: "PROCESSED", balance: { amount: "75.00", currency: "BRL" }, failureCode: null, idempotentReplay: true },
+      writes: [["READ", "financial_operations", "ON CONFLICT encontra a chave com o mesmo payload_hash e devolve o snapshot"]],
+      events: [],
+      note: "O saldo devolvido é o daquele momento (75.00), mesmo que a wallet já tenha mudado depois. Cinquenta envios em paralelo geram um único débito."
+    },
+    {
+      id: "conflict", label: "Mesma chave, outro payload", code: "409", cls: "p-bad",
+      line: "POST /wagering/transactions",
+      req: { headers: "Idempotency-Key: provider-a:transaction-123", body: betBody({ money: { amount: "30.00", currency: "BRL" } }) },
+      res: { statusCode: 409, error: "IdempotencyConflictError", code: "IDEMPOTENCY_CONFLICT", message: "Idempotency key \"provider-a:transaction-123\" was used with a different payload" },
+      writes: [["READ", "financial_operations", "a chave existe com outro payload_hash"]],
+      events: [],
+      note: "A operação original não muda. O hash cobre só campos de negócio: trocar X-Correlation-Id ou outro header não causa conflito."
+    },
+    {
+      id: "pending", label: "ROLLBACK antes da BET", code: "202", cls: "p-warn",
+      line: "POST /wagering/transactions",
+      req: { headers: "Idempotency-Key: provider-a:transaction-300", body: betBody({ externalTransactionId: "transaction-300", kind: "ROLLBACK", referenceExternalTransactionId: "transaction-299" }) },
+      res: { transactionId: "0192f2a3-2e40-7c30-8d55-6a7b8c9d0e12", externalTransactionId: "transaction-300", status: "PENDING_REFERENCE", balance: { amount: "100.00", currency: "BRL" }, failureCode: null, idempotentReplay: false },
+      writes: [
+        ["INSERT", "financial_operations", "reserva a chave"],
+        ["INSERT", "wager_transactions", "status PENDING_REFERENCE · next_reference_attempt_at = agora + 5 s · reference_expires_at = agora + 24 h"],
+        ["INSERT", "outbox", "1 evento de pendência"]
+      ],
+      events: [["WagerTransactionPendingReference", "p-warn"]],
+      note: "O pending-reference-worker tenta de novo (5 s, 10 s, 20 s… até 1 h). Quando a BET transaction-299 chega, o ROLLBACK é aplicado pelo mesmo caso de uso. Sem a BET em 24 h, vira REJECTED com REFERENCE_NOT_FOUND."
+    },
+    {
+      id: "invalid", label: "Payload inválido", code: "400", cls: "p-bad",
+      line: "POST /wagering/transactions",
+      req: { headers: "Idempotency-Key: provider-a:transaction-400", body: betBody({ externalTransactionId: "transaction-400", money: { amount: "1e3", currency: "BRL" } }) },
+      res: { statusCode: 400, error: "InvalidMoneyError", code: "INVALID_MONEY", message: "Money amount must be a plain decimal with at most two fractional digits" },
+      writes: [],
+      events: [],
+      note: "Payload que nunca poderia ser processado é recusado antes da transação. Nada é gravado e nenhum evento sai. Campo desconhecido ou kind OPENING respondem 400 com code INVALID_PAYLOAD."
+    }
+  ];
+
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function hl(text) {
+    // destaca chaves, strings e números de JSON; linhas de header ficam em cinza
+    var parts = text.split("\n\n");
+    var head = "", body = text;
+    if (parts.length > 1 && !/^\s*[\[{]/.test(parts[0])) { head = parts.shift(); body = parts.join("\n\n"); }
+    var h = esc(body).replace(/("(?:\\.|[^"\\])*")(\s*:)?|\b(-?\d+(?:\.\d+)?|true|false|null)\b/g, function (m, str, colon, num) {
+      if (str) return colon ? '<span class="k">' + str + '</span>' + colon : '<span class="s">' + str + '</span>';
+      return '<span class="n">' + num + '</span>';
+    });
+    return (head ? '<span class="c">' + esc(head) + '</span>\n\n' : "") + h;
+  }
+  function asText(v) { return typeof v === "string" ? v : JSON.stringify(v, null, 2); }
+  function render(pre, v) {
+    var t = asText(v);
+    pre.innerHTML = hl(t);
+    pre.dataset.raw = t;
+    var box = pre.parentElement;
+    if (box && box.classList.contains("code-box") && !box.querySelector(".copy")) {
+      var b = document.createElement("button");
+      b.className = "copy"; b.type = "button"; b.textContent = "Copiar";
+      b.addEventListener("click", function () {
+        var raw = pre.dataset.raw;
+        function done(msg) { b.textContent = msg; setTimeout(function () { b.textContent = "Copiar"; }, 1400); }
+        try {
+          navigator.clipboard.writeText(raw).then(function () { done("Copiado"); }, function () { selectPre(); done("Selecionado"); });
+        } catch (e) { selectPre(); done("Selecionado"); }
+        function selectPre() { var r = document.createRange(); r.selectNodeContents(pre); var s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+      });
+      box.appendChild(b);
+    }
+  }
+
+  document.querySelectorAll("pre[data-json]").forEach(function (pre) { render(pre, J[pre.dataset.json]); });
+
+  var OPCLS = { INSERT: "p-ok", UPDATE: "p-info", LOCK: "p-warn", READ: "p-mute" };
+  var tabs = document.getElementById("simTabs");
+  S.forEach(function (s, i) {
+    var b = document.createElement("button");
+    b.type = "button"; b.setAttribute("role", "tab"); b.id = "sim-" + s.id;
+    b.innerHTML = '<span>' + esc(s.label) + '</span><span class="pill code ' + s.cls + '">' + s.code + '</span>';
+    b.addEventListener("click", function () { show(i); });
+    tabs.appendChild(b);
+  });
+
+  function show(i) {
+    var s = S[i];
+    tabs.querySelectorAll("button").forEach(function (b, j) { b.setAttribute("aria-selected", j === i ? "true" : "false"); });
+    document.getElementById("simReqLine").innerHTML = '<span class="verb">POST</span><span>/wagering/transactions</span>';
+    render(document.getElementById("simReq"), s.req.headers + "\n\n" + JSON.stringify(s.req.body, null, 2));
+    document.getElementById("simStatus").innerHTML = '<span class="pill ' + s.cls + '">HTTP ' + s.code + '</span>';
+    render(document.getElementById("simRes"), s.res);
+    var w = document.getElementById("simWrites");
+    w.innerHTML = s.writes.length ? s.writes.map(function (x) {
+      return '<div class="write"><span class="op pill ' + OPCLS[x[0]] + '">' + x[0] + '</span><span><span class="tbl">' + x[1] + '</span><span class="det">' + esc(x[2]) + '</span></span></div>';
+    }).join("") : '<p class="empty">Nada é gravado.</p>';
+    var e = document.getElementById("simEvents");
+    e.innerHTML = s.events.length ? s.events.map(function (x) {
+      return '<div><span class="pill ' + x[1] + '">' + x[0] + '</span></div>';
+    }).join("") : '<p class="empty">Nenhum evento.</p>';
+    document.getElementById("simNote").textContent = s.note;
+    try { localStorage.setItem("sim-tab", String(i)); } catch (err) {}
+  }
+  var start = 0;
+  try { var v = parseInt(localStorage.getItem("sim-tab"), 10); if (v >= 0 && v < S.length) start = v; } catch (err) {}
+  show(start);
+})();
+</script>
+
+<!--claude-mermaid-runtime-begin:3477-->
+<style>.mermaid-diagram{margin-block:4px}.mermaid-diagram svg{display:block;margin:0 auto;max-width:100%;height:auto}</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>(function(){
+var CFG={"palettes":{"light":{"surface":"#f4efe4","text":"#42392e","line":"#8a7f6d","border":"#7a6c52","bg":"#fffdf8"},"dark":{"surface":"#262b34","text":"#f2f3f5","line":"#a8adb8","border":"#9aa4b8","bg":"#1f232b"}}};
+if(typeof mermaid==='undefined')return;
+var pres=Array.prototype.slice.call(document.querySelectorAll('pre.mermaid')).filter(function(p){if(p.hasAttribute('data-claude-mermaid-claimed'))return false;p.setAttribute('data-claude-mermaid-claimed','1');return true;});
+if(!pres.length)return;
+var mq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+var root=document.documentElement;
+var items=pres.map(function(pre){
+var mount=document.createElement('div');mount.className='mermaid-diagram';
+return {pre:pre,mount:mount,src:pre.textContent||''};
+});
+var seq=0;
+var renderGen=0;
+var lastKey='';
+function pageBg(fallback){
+var els=[document.body,document.documentElement];
+for(var i=0;i<els.length;i++){
+var c=els[i]&&getComputedStyle(els[i]).backgroundColor;
+if(c&&c!=='transparent'&&c!=='rgba(0, 0, 0, 0)')return c;
+}
+return fallback;
+}
+function render(){
+var theme=root.getAttribute('data-theme');
+var dark=theme==='dark'||(!!(mq&&mq.matches)&&theme!=='light');
+var pal=dark?CFG.palettes.dark:CFG.palettes.light;
+var bg=pageBg(pal.bg);
+var key=(dark?'d':'l')+'|'+bg;
+if(key===lastKey)return;
+lastKey=key;
+var gen=++renderGen;
+var font=getComputedStyle(document.body).fontFamily||'sans-serif';
+var nat={useMaxWidth:false};
+mermaid.initialize({
+startOnLoad:false,securityLevel:'strict',theme:'base',
+flowchart:nat,sequence:nat,er:nat,state:nat,class:nat,pie:nat,
+gantt:nat,journey:nat,timeline:nat,gitGraph:nat,mindmap:nat,xyChart:nat,
+quadrantChart:nat,sankey:nat,c4:nat,requirement:nat,block:nat,
+packet:nat,kanban:nat,architecture:nat,radar:nat,
+themeVariables:{background:bg,mainBkg:pal.surface,primaryColor:pal.surface,
+primaryTextColor:pal.text,lineColor:pal.line,primaryBorderColor:pal.border,
+nodeBorder:pal.border,clusterBorder:pal.border,edgeLabelBackground:bg,
+clusterBkg:'rgba(127,127,127,0.07)',titleColor:pal.text,
+darkMode:dark,rowOdd:bg,rowEven:'rgba(127,127,127,0.07)',
+attributeBackgroundColorOdd:bg,attributeBackgroundColorEven:'rgba(127,127,127,0.07)',
+fontSize:'16px',fontFamily:font},
+themeCSS:'.node rect, .node circle, .node polygon, .node path, .cluster rect { stroke-width: 2px; }'
+});
+items.forEach(function(it){
+var id='claude-mermaid-'+seq++;
+mermaid.render(id,it.src).then(function(r){
+if(gen!==renderGen)return;
+var prev=it.pre.previousElementSibling;
+if(prev&&prev.className==='mermaid-diagram'&&prev!==it.mount)return;
+it.mount.innerHTML=r.svg;
+if(!it.mount.parentNode)it.pre.parentNode.insertBefore(it.mount,it.pre);
+it.pre.style.display='none';
+},function(){
+var scratch=document.getElementById(id);
+if(scratch)scratch.parentNode.removeChild(scratch);
+scratch=document.getElementById('d'+id);
+if(scratch)scratch.parentNode.removeChild(scratch);
+if(gen!==renderGen)return;
+if(it.mount.parentNode)it.mount.parentNode.removeChild(it.mount);
+it.pre.style.display='';
+});
+});
+}
+render();
+if(mq&&mq.addEventListener)mq.addEventListener('change',render);
+if(typeof MutationObserver!=='undefined')new MutationObserver(render).observe(root,{attributes:true,attributeFilter:['data-theme']});
+})();</script>
+<!--claude-mermaid-runtime-end-->
+
+</body></html>

@@ -4,35 +4,31 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
-  UnauthorizedException,
 } from "@nestjs/common";
-import {
-  identifiesProvider,
-  ProviderAuthService,
-} from "./provider-auth.service.js";
-import type { ProviderAuthenticatedRequest } from "./types/index.js";
+import { PROVIDER_IDENTITY } from "./auth.tokens.js";
+import { identifiesProvider } from "./provider-auth.service.js";
+import type {
+  ProviderAuthenticatedRequest,
+  ProviderIdentityPort,
+} from "./types/index.js";
 
+/**
+ * Authenticates the caller through `ProviderIdentityPort` and confines it to
+ * its own provider scope. The credential mechanism lives entirely behind the
+ * port, so this guard stays the same when API keys give way to OIDC tokens.
+ */
 @Injectable()
 export class ProviderApiKeyGuard implements CanActivate {
   constructor(
-    @Inject(ProviderAuthService)
-    private readonly authentication: ProviderAuthService,
+    @Inject(PROVIDER_IDENTITY)
+    private readonly identity: ProviderIdentityPort,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context
       .switchToHttp()
       .getRequest<ProviderAuthenticatedRequest>();
-    const code = singleHeader(request.headers["x-provider-code"]);
-    const key = singleHeader(request.headers["x-provider-key"]);
-    if (code === undefined || key === undefined) {
-      throw new UnauthorizedException({
-        code: "PROVIDER_AUTHENTICATION_REQUIRED",
-        message: "X-Provider-Code and X-Provider-Key headers are required",
-      });
-    }
-
-    const provider = await this.authentication.authenticate(code, key);
+    const provider = await this.identity.identify(request.headers);
     if (
       (request.params.providerId !== undefined &&
         !identifiesProvider(request.params.providerId, provider)) ||
@@ -53,13 +49,4 @@ export class ProviderApiKeyGuard implements CanActivate {
     request.provider = provider;
     return true;
   }
-}
-
-function singleHeader(
-  value: string | string[] | undefined,
-): string | undefined {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    return undefined;
-  }
-  return value;
 }

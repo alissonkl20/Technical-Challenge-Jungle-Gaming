@@ -324,7 +324,12 @@ export interface InboxRepository {
   createIfAbsent(
     message: Pick<
       InboxRow,
-      "id" | "consumer_name" | "message_id" | "payload_hash"
+      | "id"
+      | "consumer_name"
+      | "message_id"
+      | "payload_hash"
+      | "received_at"
+      | "processed_at"
     >,
   ): Promise<InboxRow | null>;
 }

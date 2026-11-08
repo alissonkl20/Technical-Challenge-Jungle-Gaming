@@ -26,6 +26,8 @@ registerPostgresIntegrationSuite(
           consumer_name: "integration-consumer",
           message_id: randomUUID(),
           payload_hash: "b".repeat(64),
+          received_at: new Date(),
+          processed_at: new Date(),
         };
 
         await integrationContext.transactionManager.transaction(

@@ -3,7 +3,11 @@ import {
   currentCausationId,
   currentCorrelationId,
 } from "../../shared/observability/request-context.js";
-import type { LedgerDirection, MoneyProps } from "../finance/domain/index.js";
+import {
+  type LedgerDirection,
+  type MoneyProps,
+  OutboxMessage,
+} from "../finance/domain/index.js";
 
 /**
  * Every event type this system publishes, declared once.
@@ -99,11 +103,12 @@ export abstract class IntegrationEvent<T extends object> {
     readonly event_type: string;
     readonly payload: IntegrationEventEnvelope<T>;
   } {
+    const message = OutboxMessage.enqueue(this);
     return {
-      id: this.eventId,
-      aggregate_id: this.aggregateId,
-      event_type: this.eventType,
-      payload: this.toJSON(),
+      id: message.id,
+      aggregate_id: message.aggregateId,
+      event_type: message.eventType,
+      payload: message.payload as IntegrationEventEnvelope<T>,
     };
   }
 }

@@ -155,6 +155,9 @@ export function registerPostgresIntegrationSuite(
         migrations: {
           ...mikroOrmConfig.migrations,
           schema,
+          // Each test file migrates its own throwaway schema; writing the
+          // snapshot here would leak those schemas into the committed file.
+          snapshot: false,
           migrationsList: [
             Migration20261106190000,
             Migration20261106200000,

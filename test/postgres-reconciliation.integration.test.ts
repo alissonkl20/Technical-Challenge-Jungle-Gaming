@@ -53,6 +53,7 @@ registerPostgresIntegrationSuite(
             migrations: {
               ...mikroOrmConfig.migrations,
               schema: auditSchema,
+              snapshot: false,
               migrationsList: [
                 Migration20261106190000,
                 Migration20261106200000,

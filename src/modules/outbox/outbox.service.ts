@@ -127,15 +127,22 @@ export class OutboxService {
   ): Promise<OutboxDispatchFailure> {
     this.metrics?.recordRetry("outbox");
     const message = errorMessage(error).slice(0, MAX_ERROR_LENGTH);
-    // `attempts` already counts this attempt: the claim incremented it.
-    const exhausted = event.attempts >= this.maxAttempts;
+    // The entity decides the transition; the repository persists it only
+    // while this worker still holds the lease.
+    event.scheduleRetry(
+      new Date(),
+      this.retryPolicy,
+      this.maxAttempts,
+      message,
+    );
+    const exhausted = event.isExhausted();
     const wagerId = financialWagerOf(event);
     const scheduled = await this.transactions.transaction(async (session) => {
       const held = await session.outbox.scheduleRetry(
         event.id,
         worker,
         message,
-        event.nextAttemptAt(this.retryPolicy, new Date()),
+        event.nextAttemptAt,
         exhausted,
       );
       // Same transaction: the wager is marked as needing recovery (or, once
@@ -188,12 +195,14 @@ export class OutboxService {
     worker: string,
   ): Promise<OutboxDispatchFailure | null> {
     const wagerId = financialWagerOf(event);
+    const publishedAt = new Date();
+    event.markPublished(publishedAt);
     const acknowledged = await this.transactions.transaction(
       async (session) => {
         const marked = await session.outbox.markPublished(
           event.id,
           worker,
-          new Date(),
+          publishedAt,
         );
         if (marked && wagerId !== null) {
           await session.recoveries.markRecoveredIfPublished(wagerId);
@@ -244,6 +253,8 @@ function toEntity(row: OutboxRow): OutboxMessage {
     attempts: row.attempts,
     createdAt: row.created_at,
     publishedAt: row.published_at,
+    nextAttemptAt: row.next_attempt_at,
+    lastError: row.last_error,
   });
 }
 

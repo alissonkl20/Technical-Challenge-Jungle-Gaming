@@ -24,12 +24,17 @@ export class PostgresInboxRepository
   createIfAbsent(
     message: Pick<
       InboxRow,
-      "id" | "consumer_name" | "message_id" | "payload_hash"
+      | "id"
+      | "consumer_name"
+      | "message_id"
+      | "payload_hash"
+      | "received_at"
+      | "processed_at"
     >,
   ): Promise<InboxRow | null> {
     return this.findOne<InboxRow>(
-      `INSERT INTO ${this.tableName} (id, consumer_name, message_id, payload_hash, processed_at)
-       VALUES (?, ?, ?, ?, now())
+      `INSERT INTO ${this.tableName} (id, consumer_name, message_id, payload_hash, received_at, processed_at)
+       VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT (consumer_name, message_id) DO NOTHING
        RETURNING *`,
       [
@@ -37,6 +42,8 @@ export class PostgresInboxRepository
         message.consumer_name,
         message.message_id,
         message.payload_hash,
+        message.received_at,
+        message.processed_at,
       ],
     );
   }

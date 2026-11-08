@@ -33,23 +33,32 @@ export class InboxProcessor {
     const fingerprint = PayloadFingerprint.of(payload);
 
     return this.transactions.transaction(async (session) => {
-      const identity = InboxMessage.rehydrate({
+      const now = new Date();
+      const message = InboxMessage.receive({
         id: randomUUID(),
         consumerName,
         messageId,
-        payloadHash: fingerprint.toString(),
+        fingerprint,
+        receivedAt: now,
       });
+      // Marked before the handler runs because the row is the lock that
+      // arbitrates concurrent consumers and must be written first. It is
+      // safe: the record commits only together with the handler's effects,
+      // so a failed handler rolls "processed" back with everything else.
+      message.markProcessed(now);
 
       const inserted = await session.inbox.createIfAbsent({
-        id: identity.id,
-        consumer_name: identity.consumerName,
-        message_id: identity.messageId,
-        payload_hash: identity.fingerprint.toString(),
+        id: message.id,
+        consumer_name: message.consumerName,
+        message_id: message.messageId,
+        payload_hash: message.fingerprint.toString(),
+        received_at: message.receivedAt,
+        processed_at: now,
       });
       if (inserted === null) {
         const existing = await session.inbox.findByConsumerAndMessage(
-          identity.consumerName,
-          identity.messageId,
+          message.consumerName,
+          message.messageId,
         );
         if (existing === null) {
           throw new Error(
@@ -62,6 +71,8 @@ export class InboxProcessor {
           consumerName: existing.consumer_name,
           messageId: existing.message_id,
           payloadHash: existing.payload_hash,
+          receivedAt: existing.received_at,
+          processedAt: existing.processed_at,
         });
         if (!handled.isRedeliveryOf(fingerprint)) {
           // Same message ID, different payload: the producer reused an ID.
